@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Admin Karaoke Bus</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="container">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<a href="#" onclick="goBackToBusMenu()" class="back-button">
+<span>🏠</span><span>Kembali ke Menu Bus</span>
+</a>
+<button onclick="logout()" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3); font-size: 14px;">
+<span>🚪</span><span>Logout</span>
+</button>
+</div>
+<div class="header-card">
+<div class="header-content">
+<div class="header-title">
+<h1>⚙️ Panel Admin</h1>
+<p>Kontrol antrean karaoke bus</p>
+</div>
+<div class="queue-counter">
+<p>Total Antrean</p>
+<div class="count"><span id="total-count">0</span>/20</div>
+</div>
+</div>
+<div class="qr-section">
+<div class="qr-code"><img id="qr-image" alt="QR Code"></div>
+<div class="qr-info">
+<h3>📱 QR untuk Penumpang</h3>
+<p>Scan untuk request lagu</p>
+<div class="qr-link" id="form-url"></div>
+</div>
+</div>
+</div>
+<div id="now-playing-section"></div>
+<div class="queue-card">
+<h2>👥 Daftar Antrean (<span id="queue-count">0</span>)</h2>
+<div class="add-manual">
+<h3>Tambah Manual</h3>
+<div class="add-form">
+<input type="text" id="admin-name" placeholder="Nama">
+<input type="url" id="admin-link" placeholder="Link YouTube">
+<button class="add-button" onclick="addManual()">➕ Tambah</button>
+</div>
+</div>
+<div id="queue-list" class="queue-list"></div>
+</div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/room.js"></script>
+<script>
+// ✅ FIX: Ubah 'const roomId' jadi 'let adminRoomId' untuk hindari duplicate
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  let adminRoomId = urlParams.get('room');
+  if (adminRoomId) {
+    localStorage.setItem('karaoke_room_id', adminRoomId);
+  }
+})();
+
+// Fungsi kembali ke menu bus
+function goBackToBusMenu() {
+  const roomId = localStorage.getItem('karaoke_room_id');
+  if (roomId) {
+    window.location.href = `bus-menu.html?room=${roomId}`;
+  } else {
+    window.location.href = 'index.html';
+  }
+}
+
+// Cek auth & timeout (kode asli kamu tetap)
+(function() {
+  const isAuthenticated = sessionStorage.getItem("adminAuth") === "authenticated";
+  if (!isAuthenticated) {
+    window.location.replace("admin-login.html");
+    throw new Error("Unauthorized access");
+  }
+  const loginTime = sessionStorage.getItem("loginTime");
+  const twoHours = 2 * 60 * 60 * 1000;
+  if (loginTime && (Date.now() - parseInt(loginTime)) > twoHours) {
+    logout();
+  }
+})();
+
+function logout() {
+  if (confirm("Yakin ingin logout dari admin panel?")) {
+    sessionStorage.removeItem("adminAuth");
+    sessionStorage.removeItem("loginTime");
+    window.location.replace("admin-login.html");
+  }
+}
+</script>
+<script src="js/admin.js"></script>
+</body>
+</html>

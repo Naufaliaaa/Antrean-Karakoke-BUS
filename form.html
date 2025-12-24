@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Request Lagu Karaoke Bus</title>
+<link rel="stylesheet" href="css/form.css">
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="icon">🎤</div>
+<h1>Request Lagu</h1>
+<p class="subtitle">Masukkan nama dan link YouTube lagu kamu</p>
+</div>
+
+<div id="alert" class="alert"></div>
+
+<div class="form-group">
+<label for="name">Nama Kamu</label>
+<input type="text" id="name" placeholder="Masukkan nama...">
+</div>
+
+<div class="form-group">
+<label for="youtube-link">Link YouTube</label>
+<input type="url" id="youtube-link" placeholder="https://youtube.com/watch?v=...">
+<p class="help-text">Contoh: https://www.youtube.com/watch?v=dQw4w9WgXcQ</p>
+</div>
+
+<button class="submit-button" onclick="submitSong()">
+<span>➕</span>
+<span>Tambah ke Antrean</span>
+</button>
+
+<div class="queue-status">
+Total antrean: <strong><span id="queue-count">0</span></strong>
+</div>
+
+<div class="queue-status" id="queue-status">
+⏳ Menunggu antrean...
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/room.js"></script>
+<script src="js/form.js"></script>
+</body>
+</html>

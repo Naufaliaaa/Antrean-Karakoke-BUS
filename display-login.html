@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Login Display - Karaoke Bus</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+}
+.card {
+  background: #fff;
+  padding: 40px;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.3);
+  text-align: center;
+}
+h1 { margin-bottom: 20px; color: #333; }
+p { color: #666; margin-bottom: 20px; }
+input {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+input:focus { outline: none; border-color: #667eea; }
+button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 12px;
+  background: #667eea;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+button:hover { background: #556cd6; }
+.error {
+  color: red;
+  margin-top: 10px;
+  display: none;
+  font-weight: 600;
+}
+.back-link {
+  display: inline-block;
+  margin-top: 20px;
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+.back-link:hover { color: #556cd6; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>📺 Layar Karaoke</h1>
+  <p>Masukkan password untuk melanjutkan</p>
+  <input type="password" id="password" placeholder="Password display" onkeypress="if(event.key==='Enter') login()">
+  <button onclick="login()">Masuk</button>
+  <div class="error" id="error">❌ Password salah</div>
+  <a href="index.html" class="back-link">← Kembali ke Beranda</a>
+</div>
+
+<script>
+  // Password display (kembali ke asli)
+  const DISPLAY_PASSWORD = "displaybus9999";
+
+  // Cek apakah sudah login
+  if (sessionStorage.getItem("displayAuth") === "authenticated") {
+    window.location.href = "display.html";
+  }
+
+  function login() {
+    const input = document.getElementById("password").value;
+    const errorEl = document.getElementById("error");
+    if (input === DISPLAY_PASSWORD) {
+      // Set authentication token
+      sessionStorage.setItem("displayAuth", "authenticated");
+      sessionStorage.setItem("displayLoginTime", Date.now());
+      // Redirect ke display
+      window.location.href = "display.html";
+    } else {
+      // Show error
+      errorEl.style.display = "block";
+      document.getElementById("password").value = "";
+      document.getElementById("password").focus();
+      // Hide error after 3 seconds
+      setTimeout(() => {
+        errorEl.style.display = "none";
+      }, 3000);
+    }
+  }
+</script>
+</body>
+</html>

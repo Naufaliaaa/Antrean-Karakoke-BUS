@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Menu - Karaoke Bus</title>
+<link rel="stylesheet" href="css/bus-menu.css">
+</head>
+<body>
+<div class="container">
+  <!-- BACK BUTTON -->
+  <a href="index.html" class="back-button">
+    <span>←</span>
+    <span>Pilih Bus Lain</span>
+  </a>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="icon" id="bus-icon">🚌</div>
+    <h1 id="bus-name">Bus Loading...</h1>
+    <p class="subtitle" id="room-id">Room: ...</p>
+  </div>
+  <!-- MENU BUTTONS -->
+  <div class="menu-buttons">
+    <a href="#" onclick="goToDisplay(event)" class="menu-button display">
+      <span class="icon-button">📺</span>
+      <span>Layar Karaoke</span>
+    </a>
+    <a href="#" onclick="goToForm(event)" class="menu-button form">
+      <span class="icon-button">👥</span>
+      <span>Request Lagu</span>
+    </a>
+    <a href="#" onclick="goToAdmin(event)" class="menu-button admin">
+      <span class="icon-button">⚙️</span>
+      <span>Panel Admin</span>
+    </a>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/room.js"></script>
+<script>
+// ========= GET ROOM ID =========
+const urlParams = new URLSearchParams(window.location.search);
+const roomId = urlParams.get('room');
+if (!roomId) {
+  window.location.href = 'index.html';
+}
+
+// ========= DAFTAR BUS (SYNC DENGAN INDEX.HTML) =========
+const buses = [
+  { id: 'BUS-001', name: 'Bus 1', color: '#667eea' },
+  { id: 'BUS-002', name: 'Bus 2', color: '#f093fb' },
+  { id: 'BUS-003', name: 'Bus 3', color: '#4facfe' },
+  { id: 'BUS-004', name: 'Bus 4', color: '#43e97b' },
+  { id: 'BUS-005', name: 'Bus 5', color: '#fa709a' },
+  { id: 'BUS-006', name: 'Bus 6', color: '#feca57' },
+  { id: 'BUS-007', name: 'Bus 7', color: '#ff6b6b' },
+];
+
+// ========= SET BUS INFO =========
+function setBusInfo() {
+  const bus = buses.find(b => b.id === roomId);
+  if (bus) {
+    document.getElementById('bus-name').textContent = bus.name;
+    document.getElementById('bus-icon').style.background = `linear-gradient(135deg, ${bus.color} 0%, ${adjustColor(bus.color, -20)} 100%)`;
+  } else {
+    document.getElementById('bus-name').textContent = roomId;
+  }
+  document.getElementById('room-id').textContent = `Room ID: ${roomId}`;
+}
+
+// ========= ADJUST COLOR =========
+function adjustColor(color, percent) {
+  const num = parseInt(color.replace("#",""), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = (num >> 16) + amt;
+  const G = (num >> 8 & 0x00FF) + amt;
+  const B = (num & 0x0000FF) + amt;
+  return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
+}
+
+// ========= NAVIGATION - UPDATE: LANGSUNG KE TUJUAN (TANPA PIN LAGI) =========
+function goToDisplay(e) {
+  e.preventDefault();
+  window.location.href = `display-login.html?room=${roomId}`;
+}
+
+function goToForm(e) {
+  e.preventDefault();
+  window.location.href = `form.html?room=${roomId}`;
+}
+
+function goToAdmin(e) {
+  e.preventDefault();
+  window.location.href = `admin-login.html?room=${roomId}`;
+}
+
+// ========= INIT =========
+setBusInfo();
+</script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.container {
+  background: white;
+  border-radius: 30px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  padding: 40px;
+  max-width: 480px;
+  width: 100%;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+.icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+h1 {
+  font-size: 32px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 14px;
+}
+
+.bus-selection {
+  text-align: center;
+}
+
+.bus-selection h2 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 20px;
+}
+
+.bus-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.bus-card {
+  padding: 18px 15px;
+  border-radius: 16px;
+  color: white;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+  /* Warna lebih tajam & bold */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.bus-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.bus-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4); /* bikin teks lebih jelas */
+}
+
+.bus-id {
+  font-size: 12px;
+  opacity: 0.95;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+.bus-icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 12px;
+  background: url('https://img.icons8.com/emoji/96/000000/bus.png') no-repeat center;
+  background-size: contain;
+}
+
+.bus-icon::before {
+  content: "🚌";
+  font-size: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  opacity: 0.3;
+}
+
+.custom-room {
+  margin-top: 25px;
+  text-align: center;
+}
+
+.custom-label {
+  color: #666;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.custom-input {
+  display: flex;
+  gap: 8px;
+}
+
+.custom-input input {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.custom-input button {
+  padding: 10px 18px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  .bus-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .container {
+    max-width: 700px;
+    padding: 50px;
+  }
+}

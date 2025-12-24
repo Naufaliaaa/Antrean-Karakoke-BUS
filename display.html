@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layar Karaoke Bus</title>
+<link rel="stylesheet" href="css/display.css">
+</head>
+<body>
+<div id="player"></div>
+
+<div class="now-playing">
+<div class="now-playing-label">Sedang Bernyanyi</div>
+<div class="now-playing-name" id="now">Menunggu lagu...</div>
+<div class="now-playing-time" id="timer">⏳ 10:00</div>
+</div>
+
+<div class="queue-container">
+<div class="queue-header">🎵 Antrean Selanjutnya</div>
+<div id="queue-list" class="empty">Belum ada antrean</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/room.js"></script>
+<script>
+(function() {
+  const isAuthenticated = sessionStorage.getItem("displayAuth") === "authenticated";
+  if (!isAuthenticated) {
+    window.location.replace("display-login.html");
+    throw new Error("Unauthorized access");
+  }
+  const loginTime = sessionStorage.getItem("displayLoginTime");
+  const eightHours = 8 * 60 * 60 * 1000;
+  if (loginTime && (Date.now() - parseInt(loginTime)) > eightHours) {
+    sessionStorage.removeItem("displayAuth");
+    sessionStorage.removeItem("displayLoginTime");
+    window.location.replace("display-login.html");
+  }
+})();
+</script>
+<script src="js/display.js"></script>
+</body>
+</html>
