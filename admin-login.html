@@ -87,60 +87,77 @@ color: #556cd6;
 <div class="error" id="error">❌ Password salah</div>
 <a href="#" onclick="goBackToBusMenu()" class="back-link">← Kembali ke Menu Bus</a>
 </div>
+
+<!-- Custom Modal -->
+<script src="js/custom-modal.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/room.js"></script>
 <script>
 // Password admin
 const ADMIN_PASSWORD = "karaokebushioo0001";
 
 // Cek apakah sudah login
 if (sessionStorage.getItem("adminAuth") === "authenticated") {
-  const urlParams = new URLSearchParams(window.location.search);
-  const room = urlParams.get('room');
-  if (room) {
-    window.location.href = `admin.html?room=${room}`;
+const urlParams = new URLSearchParams(window.location.search);
+const room = urlParams.get('room');
+if (room) {
+window.location.href = `admin.html?room=${room}`;
   } else {
-    window.location.href = "admin.html";
+window.location.href = "admin.html";
   }
 }
 
 function login() {
-  const input = document.getElementById("password").value;
-  const errorEl = document.getElementById("error");
-  
-  if (input === ADMIN_PASSWORD) {
-    // Set authentication token
-    sessionStorage.setItem("adminAuth", "authenticated");
-    sessionStorage.setItem("loginTime", Date.now());
-    
-    // Get room dari URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const room = urlParams.get('room');
-    
-    // Redirect ke admin panel
-    if (room) {
-      localStorage.setItem('karaoke_room_id', room);
-      window.location.href = `admin.html?room=${room}`;
+const input = document.getElementById("password").value;
+const errorEl = document.getElementById("error");
+if (input === ADMIN_PASSWORD) {
+// Set authentication token
+sessionStorage.setItem("adminAuth", "authenticated");
+sessionStorage.setItem("loginTime", Date.now());
+// Get room dari URL
+const urlParams = new URLSearchParams(window.location.search);
+const room = urlParams.get('room');
+// Redirect ke admin panel
+if (room) {
+localStorage.setItem('karaoke_room_id', room);
+window.location.href = `admin.html?room=${room}`;
     } else {
-      window.location.href = "admin.html";
+window.location.href = "admin.html";
     }
   } else {
-    // Show error
-    errorEl.style.display = "block";
-    document.getElementById("password").value = "";
-    document.getElementById("password").focus();
-    // Hide error after 3 seconds
-    setTimeout(() => {
-      errorEl.style.display = "none";
+// Show error
+errorEl.style.display = "block";
+document.getElementById("password").value = "";
+document.getElementById("password").focus();
+// Hide error after 3 seconds
+setTimeout(() => {
+errorEl.style.display = "none";
     }, 3000);
   }
 }
 
-// Kembali ke menu bus
-function goBackToBusMenu() {
-  const roomId = localStorage.getItem('karaoke_room_id');
-  if (roomId) {
-    window.location.href = `bus-menu.html?room=${roomId}`;
-  } else {
-    window.location.href = 'index.html';
+// Kembali ke menu bus dengan konfirmasi
+async function goBackToBusMenu() {
+const result = await customConfirm(
+'Anda akan kembali ke menu bus tanpa login sebagai admin.', 
+{
+title: 'Kembali ke Menu?',
+icon: '🏠',
+confirmText: 'Ya, Kembali',
+cancelText: 'Batal'
+}
+  );
+  
+if (result) {
+const roomId = localStorage.getItem('karaoke_room_id');
+if (roomId) {
+window.location.href = `bus-menu.html?room=${roomId}`;
+    } else {
+window.location.href = 'index.html';
+    }
   }
 }
 </script>

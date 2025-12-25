@@ -36,30 +36,31 @@
 </div>
 </div>
 
+<!-- Custom Modal -->
+<script src="js/custom-modal.js"></script>
+
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="js/firebase.js"></script>
 <script src="js/room.js"></script>
 <script>
-// ========= 🔐 SECURITY CHECK - JANGAN DIHAPUS! =========
-(function() {
+// ========= 🔐 SECURITY CHECK =========
+(async function() {
   const urlParams = new URLSearchParams(window.location.search);
   const roomId = urlParams.get('room');
   
   if (!roomId) {
-    alert('❌ Room ID tidak ditemukan!');
+    await customError('Room ID tidak ditemukan!', 'Akses Ditolak');
     window.location.href = 'index.html';
     return;
   }
   
-  // ✅ CEK TOKEN - Harus sudah verifikasi PIN
   const roomToken = sessionStorage.getItem(`room_token_${roomId}`);
   
   if (!roomToken) {
-    // Belum verifikasi PIN, redirect ke pin-login
     console.warn('⚠️ Unauthorized access attempt blocked!');
-    alert('❌ Anda harus memasukkan PIN terlebih dahulu!');
+    await customWarning('Anda harus memasukkan PIN terlebih dahulu!', 'Akses Ditolak');
     window.location.href = `pin-login.html?room=${roomId}`;
     return;
   }
@@ -72,7 +73,7 @@
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get('room');
 
-// ========= DAFTAR BUS (SYNC DENGAN INDEX.HTML) =========
+// ========= DAFTAR BUS =========
 const buses = [
   { id: 'BUS-001', name: 'Bus 1', color: '#667eea' },
   { id: 'BUS-002', name: 'Bus 2', color: '#f093fb' },
@@ -105,18 +106,27 @@ function adjustColor(color, percent) {
   return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
 }
 
-// ========= ✅ KONFIRMASI KELUAR + HAPUS TOKEN =========
-function confirmExit(e) {
+// ========= ✅ KONFIRMASI KELUAR (CUSTOM MODAL) =========
+async function confirmExit(e) {
   e.preventDefault();
   
-  if (confirm('❓ Apakah Anda yakin ingin keluar dari room bus ini?')) {
-    // Hapus token agar harus input PIN lagi nanti
+  const result = await customConfirm(
+    'Apakah Anda yakin ingin keluar dari room bus ini?', 
+    {
+      title: 'Konfirmasi Keluar',
+      icon: '🚪',
+      confirmText: 'Ya, Keluar',
+      cancelText: 'Batal',
+      confirmClass: 'custom-modal-btn-danger'
+    }
+  );
+  
+  if (result) {
+    // Hapus token
     sessionStorage.removeItem(`room_token_${roomId}`);
     sessionStorage.removeItem(`room_pin_verified_${roomId}`);
     
     console.log('🚪 User logged out, token removed');
-    
-    // Redirect ke halaman utama
     window.location.href = 'index.html';
   }
 }

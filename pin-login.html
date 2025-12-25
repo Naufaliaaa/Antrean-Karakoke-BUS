@@ -90,6 +90,9 @@ color: #334155;
 </a>
 </div>
 
+<!-- Custom Modal -->
+<script src="js/custom-modal.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="js/firebase.js"></script>
@@ -124,8 +127,6 @@ async function verifyPin() {
   submitBtn.textContent = 'Memverifikasi...';
   
   const pin = Number(pinInput);
-  
-  // ✅ FIX: Gunakan template literal dengan backtick yang benar
   const pinRef = db.ref(`karaoke/room/${roomId}/Setting/pin`);
   
   try {
@@ -135,11 +136,8 @@ async function verifyPin() {
       // ✅ PIN BENAR - Generate Token
       const token = generateSecureToken(roomId, pin);
       
-      // Simpan token di sessionStorage (hilang saat browser ditutup)
       sessionStorage.setItem(`room_token_${roomId}`, token);
       sessionStorage.setItem(`room_pin_verified_${roomId}`, Date.now());
-      
-      // Simpan juga di localStorage untuk room ID
       localStorage.setItem('karaoke_room_id', roomId);
       
       console.log('✅ PIN verified, token generated');
@@ -157,12 +155,12 @@ async function verifyPin() {
         errorEl.style.display = 'none'; 
       }, 3000);
       
-      // Enable button kembali
       submitBtn.disabled = false;
       submitBtn.textContent = 'Masuk';
     }
   } catch (e) {
-    alert('Gagal memeriksa PIN. Coba lagi.');
+    // ✅ GUNAKAN CUSTOM ERROR MODAL
+    await customError('Gagal memeriksa PIN. Silakan coba lagi.', 'Koneksi Error');
     console.error('PIN verification error:', e);
     submitBtn.disabled = false;
     submitBtn.textContent = 'Masuk';
@@ -175,7 +173,6 @@ function generateSecureToken(roomId, pin) {
   const random = Math.random().toString(36).substring(2, 15);
   const data = `${roomId}-${pin}-${timestamp}-${random}`;
   
-  // Simple hash (dalam production pakai crypto yang lebih kuat)
   let hash = 0;
   for (let i = 0; i < data.length; i++) {
     const char = data.charCodeAt(i);
