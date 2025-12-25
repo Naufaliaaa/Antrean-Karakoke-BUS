@@ -8,32 +8,32 @@
 </head>
 <body>
 <div class="container">
-  <!-- BACK BUTTON -->
-  <a href="index.html" class="back-button">
-    <span>←</span>
-    <span>Pilih Bus Lain</span>
-  </a>
-  <!-- HEADER -->
-  <div class="header">
-    <div class="icon" id="bus-icon">🚌</div>
-    <h1 id="bus-name">Bus Loading...</h1>
-    <p class="subtitle" id="room-id">Room: ...</p>
-  </div>
-  <!-- MENU BUTTONS -->
-  <div class="menu-buttons">
-    <a href="#" onclick="goToDisplay(event)" class="menu-button display">
-      <span class="icon-button">📺</span>
-      <span>Layar Karaoke</span>
-    </a>
-    <a href="#" onclick="goToForm(event)" class="menu-button form">
-      <span class="icon-button">👥</span>
-      <span>Request Lagu</span>
-    </a>
-    <a href="#" onclick="goToAdmin(event)" class="menu-button admin">
-      <span class="icon-button">⚙️</span>
-      <span>Panel Admin</span>
-    </a>
-  </div>
+<!-- BACK BUTTON WITH CONFIRMATION -->
+<a href="#" onclick="confirmExit(event)" class="back-button">
+<span>←</span>
+<span>Pilih Bus Lain</span>
+</a>
+<!-- HEADER -->
+<div class="header">
+<div class="icon" id="bus-icon">🚌</div>
+<h1 id="bus-name">Bus Loading...</h1>
+<p class="subtitle" id="room-id">Room: ...</p>
+</div>
+<!-- MENU BUTTONS -->
+<div class="menu-buttons">
+<a href="#" onclick="goToDisplay(event)" class="menu-button display">
+<span class="icon-button">📺</span>
+<span>Layar Karaoke</span>
+</a>
+<a href="#" onclick="goToForm(event)" class="menu-button form">
+<span class="icon-button">👥</span>
+<span>Request Lagu</span>
+</a>
+<a href="#" onclick="goToAdmin(event)" class="menu-button admin">
+<span class="icon-button">⚙️</span>
+<span>Panel Admin</span>
+</a>
+</div>
 </div>
 
 <!-- Firebase -->
@@ -42,12 +42,35 @@
 <script src="js/firebase.js"></script>
 <script src="js/room.js"></script>
 <script>
+// ========= 🔐 SECURITY CHECK - JANGAN DIHAPUS! =========
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomId = urlParams.get('room');
+  
+  if (!roomId) {
+    alert('❌ Room ID tidak ditemukan!');
+    window.location.href = 'index.html';
+    return;
+  }
+  
+  // ✅ CEK TOKEN - Harus sudah verifikasi PIN
+  const roomToken = sessionStorage.getItem(`room_token_${roomId}`);
+  
+  if (!roomToken) {
+    // Belum verifikasi PIN, redirect ke pin-login
+    console.warn('⚠️ Unauthorized access attempt blocked!');
+    alert('❌ Anda harus memasukkan PIN terlebih dahulu!');
+    window.location.href = `pin-login.html?room=${roomId}`;
+    return;
+  }
+  
+  console.log('✅ Access granted - Token valid');
+})();
+// ========= END SECURITY CHECK =========
+
 // ========= GET ROOM ID =========
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get('room');
-if (!roomId) {
-  window.location.href = 'index.html';
-}
 
 // ========= DAFTAR BUS (SYNC DENGAN INDEX.HTML) =========
 const buses = [
@@ -82,7 +105,23 @@ function adjustColor(color, percent) {
   return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
 }
 
-// ========= NAVIGATION - UPDATE: LANGSUNG KE TUJUAN (TANPA PIN LAGI) =========
+// ========= ✅ KONFIRMASI KELUAR + HAPUS TOKEN =========
+function confirmExit(e) {
+  e.preventDefault();
+  
+  if (confirm('❓ Apakah Anda yakin ingin keluar dari room bus ini?')) {
+    // Hapus token agar harus input PIN lagi nanti
+    sessionStorage.removeItem(`room_token_${roomId}`);
+    sessionStorage.removeItem(`room_pin_verified_${roomId}`);
+    
+    console.log('🚪 User logged out, token removed');
+    
+    // Redirect ke halaman utama
+    window.location.href = 'index.html';
+  }
+}
+
+// ========= NAVIGATION =========
 function goToDisplay(e) {
   e.preventDefault();
   window.location.href = `display-login.html?room=${roomId}`;

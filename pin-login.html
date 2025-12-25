@@ -48,6 +48,10 @@ cursor: pointer;
 transition: all 0.3s;
 }
 button:hover { background: #556cd6; }
+button:disabled {
+background: #ccc;
+cursor: not-allowed;
+}
 .error {
 color: red;
 margin-top: 10px;
@@ -77,58 +81,109 @@ color: #334155;
 <div class="card">
 <h1>🔑 Masuk ke Bus</h1>
 <p>Masukkan PIN 6 digit</p>
-<input type="text" id="pin" maxlength="6" placeholder="______" onkeypress="if(event.key==='Enter') verifyPin()">
-<button onclick="verifyPin()">Masuk</button>
+<input type="text" id="pin" maxlength="6" placeholder="______" onkeypress="if(event.key==='Enter') verifyPin()" autofocus>
+<button onclick="verifyPin()" id="submit-btn">Masuk</button>
 <div class="error" id="error">PIN salah</div>
 <a href="index.html" class="back-button">
 <span>←</span>
 <span>Kembali ke Pilih Bus</span>
 </a>
 </div>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="js/firebase.js"></script>
 <script src="js/room.js"></script>
 <script>
-// ========= KEAMANAN ANTI-DIRECT LINK =========
-// Jika tidak ada parameter room di URL, redirect ke index.html
+// ========= KEAMANAN: CEK DIRECT ACCESS =========
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get('room');
+
 if (!roomId) {
   window.location.href = 'index.html';
 }
 
+// ========= HAPUS TOKEN LAMA (Agar selalu diminta PIN) =========
+sessionStorage.removeItem(`room_token_${roomId}`);
+sessionStorage.removeItem(`room_pin_verified_${roomId}`);
+
 // ========= VERIFIKASI PIN =========
 async function verifyPin() {
-  let pinInput = document.getElementById('pin').value.trim();
+  const pinInput = document.getElementById('pin').value.trim();
   const errorEl = document.getElementById('error');
+  const submitBtn = document.getElementById('submit-btn');
   
   if (pinInput.length !== 6 || !/^\d{6}$/.test(pinInput)) {
+    errorEl.textContent = 'PIN harus 6 digit angka';
     errorEl.style.display = 'block';
     return;
   }
   
-  // Ubah input jadi number (sesuai Firebase kamu yang simpan sebagai number)
+  // Disable button saat proses
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Memverifikasi...';
+  
   const pin = Number(pinInput);
   
-  // ✅ FIX: Gunakan tanda backtick yang benar untuk template literal
+  // ✅ FIX: Gunakan template literal dengan backtick yang benar
   const pinRef = db.ref(`karaoke/room/${roomId}/Setting/pin`);
   
   try {
     const snap = await pinRef.once('value');
+    
     if (snap.exists() && snap.val() === pin) {
+      // ✅ PIN BENAR - Generate Token
+      const token = generateSecureToken(roomId, pin);
+      
+      // Simpan token di sessionStorage (hilang saat browser ditutup)
+      sessionStorage.setItem(`room_token_${roomId}`, token);
+      sessionStorage.setItem(`room_pin_verified_${roomId}`, Date.now());
+      
+      // Simpan juga di localStorage untuk room ID
       localStorage.setItem('karaoke_room_id', roomId);
+      
+      console.log('✅ PIN verified, token generated');
+      
+      // Redirect ke bus menu
       window.location.href = `bus-menu.html?room=${roomId}`;
     } else {
+      // ❌ PIN SALAH
+      errorEl.textContent = 'PIN salah';
       errorEl.style.display = 'block';
       document.getElementById('pin').value = '';
       document.getElementById('pin').focus();
-      setTimeout(() => { errorEl.style.display = 'none'; }, 3000);
+      
+      setTimeout(() => { 
+        errorEl.style.display = 'none'; 
+      }, 3000);
+      
+      // Enable button kembali
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Masuk';
     }
   } catch (e) {
     alert('Gagal memeriksa PIN. Coba lagi.');
-    console.error(e);
+    console.error('PIN verification error:', e);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Masuk';
   }
+}
+
+// ========= GENERATE SECURE TOKEN =========
+function generateSecureToken(roomId, pin) {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 15);
+  const data = `${roomId}-${pin}-${timestamp}-${random}`;
+  
+  // Simple hash (dalam production pakai crypto yang lebih kuat)
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  
+  return `TOKEN_${Math.abs(hash).toString(36)}_${timestamp}`;
 }
 </script>
 </body>
