@@ -1,6 +1,5 @@
 /*************************************************
- * ADMIN.JS – COMPLETE FIXED VERSION
- * Rendering antrean sudah benar
+ * ADMIN.JS – WITH YOUTUBE EMBED VALIDATION
  *************************************************/
 
 // ============ GLOBAL STATE ============
@@ -16,12 +15,12 @@ if (document.readyState === "loading") {
 }
 
 // ============ INIT ADMIN ============
-function initAdmin() {
+async function initAdmin() {
   console.log("🚀 Init Admin...");
 
   if (!window.RoomManager) {
     console.error("❌ RoomManager tidak ditemukan");
-    alert("RoomManager tidak ditemukan");
+    await customError("RoomManager tidak ditemukan. Silakan refresh halaman.");
     return;
   }
 
@@ -30,7 +29,7 @@ function initAdmin() {
 
   if (!roomId) {
     console.error("❌ Room ID tidak ditemukan");
-    alert("Room ID tidak ditemukan");
+    await customError("Room ID tidak ditemukan. Kembali ke beranda.");
     location.href = "index.html";
     return;
   }
@@ -40,14 +39,14 @@ function initAdmin() {
 
   if (!RoomManager.initRoomSystem()) {
     console.error("❌ Gagal init room");
-    alert("Gagal init room");
+    await customError("Gagal menginisialisasi sistem room.");
     return;
   }
 
   queueRef = RoomManager.getQueueRef();
   if (!queueRef) {
     console.error("❌ Queue tidak tersedia");
-    alert("Queue tidak tersedia");
+    await customError("Tidak dapat terhubung ke database queue.");
     return;
   }
 
@@ -181,8 +180,42 @@ function renderQueue(snapshot) {
   console.log("✅ Render complete");
 }
 
+// ============ 🆕 VALIDATE YOUTUBE EMBED ============
+async function validateYouTubeEmbed(videoId) {
+  try {
+    console.log("🔍 Checking embed status for:", videoId);
+    
+    // Method 1: Check YouTube oEmbed API
+    const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+    
+    const response = await fetch(oEmbedUrl);
+    
+    if (response.ok) {
+      console.log("✅ Video can be embedded");
+      return { 
+        canEmbed: true, 
+        reason: null 
+      };
+    } else {
+      console.warn("⚠️ Video cannot be embedded");
+      return { 
+        canEmbed: false, 
+        reason: "Video ini tidak mengizinkan embed (diputar di website lain). Kemungkinan pemilik video menonaktifkan fitur embed atau video memiliki pembatasan copyright."
+      };
+    }
+  } catch (error) {
+    console.error("❌ Embed check failed:", error);
+    // Jika gagal cek, tetap allow (network issue)
+    return { 
+      canEmbed: true, 
+      reason: null,
+      warning: "Tidak dapat memverifikasi status embed. Video akan dicoba diputar."
+    };
+  }
+}
+
 // ============ ADD MANUAL ============
-window.addManual = function () {
+window.addManual = async function () {
   console.log("➕ Add manual triggered");
   
   const nameInput = document.getElementById("admin-name");
@@ -190,7 +223,7 @@ window.addManual = function () {
 
   if (!nameInput || !linkInput) {
     console.error("❌ Input elements not found");
-    alert("❌ Input tidak ditemukan");
+    await customError("Input tidak ditemukan.");
     return;
   }
 
@@ -198,19 +231,46 @@ window.addManual = function () {
   const link = linkInput.value.trim();
 
   if (!name || !link) {
-    alert("❌ Nama & link wajib diisi!");
+    await customWarning("Nama & link wajib diisi!", "Data Tidak Lengkap");
     return;
   }
 
   const videoId = extractVideoId(link);
   if (!videoId) {
-    alert("❌ Link YouTube tidak valid!");
+    await customError("Link YouTube tidak valid!", "Format Salah");
     return;
+  }
+
+  console.log("✅ Video ID extracted:", videoId);
+
+  // ✅ VALIDASI EMBED
+  const embedCheck = await validateYouTubeEmbed(videoId);
+  
+  if (!embedCheck.canEmbed) {
+    // Video tidak bisa di-embed, tampilkan warning
+    const proceed = await customConfirm(
+      `⚠️ ${embedCheck.reason}\n\nVideo ini kemungkinan besar TIDAK AKAN BISA DIPUTAR di display.\n\nApakah Anda tetap ingin menambahkannya?`,
+      {
+        title: "Video Mungkin Bermasalah",
+        icon: "⚠️",
+        confirmText: "Tetap Tambahkan",
+        cancelText: "Batal",
+        confirmClass: "custom-modal-btn-danger"
+      }
+    );
+    
+    if (!proceed) {
+      console.log("❌ User cancelled due to embed warning");
+      return;
+    }
+  } else if (embedCheck.warning) {
+    // Ada warning tapi tetap allow
+    await customWarning(embedCheck.warning, "Perhatian");
   }
 
   console.log("✅ Adding:", name, videoId);
 
-  queueRef.once("value", snap => {
+  queueRef.once("value", async snap => {
     let max = 0;
     
     if (snap.exists()) {
@@ -226,88 +286,115 @@ window.addManual = function () {
       order: max + 1,
       deviceId: "ADMIN-MANUAL",
       createdAt: Date.now()
-    }, error => {
+    }, async error => {
       if (error) {
         console.error("❌ Add failed:", error);
-        alert("❌ Gagal menambahkan: " + error.message);
+        await customError(`Gagal menambahkan lagu: ${error.message}`, "Gagal Menambahkan");
       } else {
         console.log("✅ Added successfully");
-        alert("✅ Lagu berhasil ditambahkan!");
+        await customSuccess(`Lagu "${name}" berhasil ditambahkan ke antrean!`, "Berhasil!");
         nameInput.value = "";
         linkInput.value = "";
         nameInput.focus();
       }
     });
-  }).catch(error => {
+  }).catch(async error => {
     console.error("❌ Database error:", error);
-    alert("❌ Error: " + error.message);
+    await customError(`Error database: ${error.message}`);
   });
 };
 
 // ============ DELETE ============
-window.deleteFromQueue = function (key) {
+window.deleteFromQueue = async function (key) {
   console.log("🗑️ Delete:", key);
   
-  if (!confirm("❓ Hapus lagu ini?")) {
-    return;
-  }
+  const result = await customConfirm(
+    "Lagu ini akan dihapus dari antrean.", 
+    {
+      title: "Hapus Lagu?",
+      icon: "🗑️",
+      confirmText: "Ya, Hapus",
+      cancelText: "Batal",
+      confirmClass: "custom-modal-btn-danger"
+    }
+  );
+  
+  if (!result) return;
 
   queueRef.child(key).remove()
-    .then(() => {
+    .then(async () => {
       console.log("✅ Deleted");
     })
-    .catch(error => {
+    .catch(async error => {
       console.error("❌ Delete error:", error);
-      alert("❌ Gagal hapus: " + error.message);
+      await customError(`Gagal hapus: ${error.message}`);
     });
 };
 
 // ============ SKIP ============
-window.skipCurrent = function () {
+window.skipCurrent = async function () {
   console.log("⏭️ Skip triggered");
   
-  if (!confirm("⏭️ Skip lagu yang sedang diputar?")) {
-    return;
-  }
+  const result = await customConfirm(
+    "Lagu yang sedang diputar akan dilewati.", 
+    {
+      title: "Skip Lagu?",
+      icon: "⏭️",
+      confirmText: "Ya, Skip",
+      cancelText: "Batal"
+    }
+  );
+  
+  if (!result) return;
 
-  queueRef.orderByChild("order").limitToFirst(1).once("value", snap => {
+  queueRef.orderByChild("order").limitToFirst(1).once("value", async snap => {
     if (!snap.exists()) {
-      alert("❌ Tidak ada lagu");
+      await customWarning("Tidak ada lagu yang sedang diputar.", "Tidak Ada Lagu");
       return;
     }
 
     snap.forEach(c => {
       queueRef.child(c.key).remove()
-        .then(() => {
+        .then(async () => {
           console.log("✅ Skipped");
+          await customSuccess("Lagu berhasil di-skip!", "Berhasil!");
         })
-        .catch(error => {
+        .catch(async error => {
           console.error("❌ Skip error:", error);
-          alert("❌ Gagal skip: " + error.message);
+          await customError(`Gagal skip: ${error.message}`);
         });
     });
-  }).catch(error => {
+  }).catch(async error => {
     console.error("❌ Database error:", error);
-    alert("❌ Error: " + error.message);
+    await customError(`Error: ${error.message}`);
   });
 };
 
 // ============ RESET ============
-window.resetAllQueue = function () {
+window.resetAllQueue = async function () {
   console.log("🗑️ Reset all triggered");
   
-  if (!confirm("⚠️ HAPUS SELURUH ANTREAN?\n\nSemua lagu akan dihapus!")) {
-    return;
-  }
+  const result = await customConfirm(
+    "SEMUA lagu dalam antrean akan dihapus!\n\nTindakan ini tidak dapat dibatalkan.", 
+    {
+      title: "Reset Semua Antrean?",
+      icon: "⚠️",
+      confirmText: "Ya, Hapus Semua",
+      cancelText: "Batal",
+      confirmClass: "custom-modal-btn-danger"
+    }
+  );
+  
+  if (!result) return;
 
   queueRef.remove()
-    .then(() => {
+    .then(async () => {
       console.log("✅ Reset complete");
-      alert("✅ Semua antrean dihapus!");
+      await customSuccess("Semua antrean berhasil dihapus!", "Reset Selesai");
     })
-    .catch(error => {
+    .catch(async error => {
       console.error("❌ Reset error:", error);
-      alert("❌ Gagal reset: " + error.message);
+      await customError(`Gagal reset: ${error.message}`);
     });
 };
 
@@ -315,7 +402,7 @@ window.resetAllQueue = function () {
 function swapOrder(sourceKey, targetKey) {
   console.log("🔄 Swapping:", sourceKey, "↔️", targetKey);
   
-  queueRef.once("value", snap => {
+  queueRef.once("value", async snap => {
     const data = snap.val();
     
     if (!data || !data[sourceKey] || !data[targetKey]) {
@@ -331,13 +418,13 @@ function swapOrder(sourceKey, targetKey) {
       .then(() => {
         console.log("✅ Order swapped");
       })
-      .catch(error => {
+      .catch(async error => {
         console.error("❌ Swap error:", error);
-        alert("❌ Gagal ubah urutan: " + error.message);
+        await customError(`Gagal ubah urutan: ${error.message}`);
       });
-  }).catch(error => {
+  }).catch(async error => {
     console.error("❌ Database error:", error);
-    alert("❌ Error: " + error.message);
+    await customError(`Error: ${error.message}`);
   });
 }
 

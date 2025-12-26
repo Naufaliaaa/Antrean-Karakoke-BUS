@@ -4,88 +4,16 @@
 <meta charset="UTF-8">
 <title>Login Admin - Karaoke Bus</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body {
-font-family: Arial, sans-serif;
-background: linear-gradient(135deg,#667eea,#764ba2);
-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-margin: 0;
-}
-.card {
-background:#fff;
-padding:40px;
-border-radius:20px;
-width:100%;
-max-width:360px;
-box-shadow:0 20px 50px rgba(0,0,0,.3);
-text-align:center;
-}
-h1 {
-margin-bottom:20px;
-color: #333;
-}
-p {
-color: #666;
-margin-bottom: 20px;
-}
-input {
-width:100%;
-padding:15px;
-border-radius:12px;
-border:1px solid #ccc;
-font-size:16px;
-margin-bottom:15px;
-box-sizing: border-box;
-}
-input:focus {
-outline: none;
-border-color: #667eea;
-}
-button {
-width:100%;
-padding:15px;
-border:none;
-border-radius:12px;
-background:#667eea;
-color:white;
-font-size:16px;
-font-weight:bold;
-cursor:pointer;
-transition: all 0.3s;
-}
-button:hover {
-background:#556cd6;
-}
-.error {
-color:red;
-margin-top:10px;
-display:none;
-font-weight: 600;
-}
-.back-link {
-display: inline-block;
-margin-top: 20px;
-color: #667eea;
-text-decoration: none;
-font-weight: 600;
-transition: all 0.3s;
-}
-.back-link:hover {
-color: #556cd6;
-}
-</style>
+<link rel="stylesheet" href="css/admin-login.css">
 </head>
 <body>
 <div class="card">
 <h1>🔐 Admin Panel</h1>
 <p>Masukkan password untuk melanjutkan</p>
-<input type="password" id="password" placeholder="Password admin" onkeypress="if(event.key==='Enter') login()" autofocus>
-<button onclick="login()">Masuk</button>
+<input type="password" id="password" placeholder="Password admin" autofocus>
+<button id="login-btn">Masuk</button>
 <div class="error" id="error">❌ Password salah</div>
-<a href="#" onclick="goBackToBusMenu()" class="back-link">← Kembali ke Menu Bus</a>
+<a href="#" id="back-link" class="back-link">← Kembali ke Menu Bus</a>
 </div>
 
 <!-- Custom Modal -->
@@ -95,71 +23,6 @@ color: #556cd6;
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="js/firebase.js"></script>
 <script src="js/room.js"></script>
-<script>
-// Password admin
-const ADMIN_PASSWORD = "karaokebushioo0001";
-
-// Cek apakah sudah login
-if (sessionStorage.getItem("adminAuth") === "authenticated") {
-const urlParams = new URLSearchParams(window.location.search);
-const room = urlParams.get('room');
-if (room) {
-window.location.href = `admin.html?room=${room}`;
-  } else {
-window.location.href = "admin.html";
-  }
-}
-
-function login() {
-const input = document.getElementById("password").value;
-const errorEl = document.getElementById("error");
-if (input === ADMIN_PASSWORD) {
-// Set authentication token
-sessionStorage.setItem("adminAuth", "authenticated");
-sessionStorage.setItem("loginTime", Date.now());
-// Get room dari URL
-const urlParams = new URLSearchParams(window.location.search);
-const room = urlParams.get('room');
-// Redirect ke admin panel
-if (room) {
-localStorage.setItem('karaoke_room_id', room);
-window.location.href = `admin.html?room=${room}`;
-    } else {
-window.location.href = "admin.html";
-    }
-  } else {
-// Show error
-errorEl.style.display = "block";
-document.getElementById("password").value = "";
-document.getElementById("password").focus();
-// Hide error after 3 seconds
-setTimeout(() => {
-errorEl.style.display = "none";
-    }, 3000);
-  }
-}
-
-// Kembali ke menu bus dengan konfirmasi
-async function goBackToBusMenu() {
-const result = await customConfirm(
-'Anda akan kembali ke menu bus tanpa login sebagai admin.', 
-{
-title: 'Kembali ke Menu?',
-icon: '🏠',
-confirmText: 'Ya, Kembali',
-cancelText: 'Batal'
-}
-  );
-  
-if (result) {
-const roomId = localStorage.getItem('karaoke_room_id');
-if (roomId) {
-window.location.href = `bus-menu.html?room=${roomId}`;
-    } else {
-window.location.href = 'index.html';
-    }
-  }
-}
-</script>
+<script src="js/admin-login.js"></script>
 </body>
 </html>

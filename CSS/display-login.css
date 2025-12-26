@@ -1,0 +1,88 @@
+/* display-login.css */
+
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+}
+
+.card {
+  background: #fff;
+  padding: 40px;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.3);
+  text-align: center;
+}
+
+h1 { 
+  margin-bottom: 20px; 
+  color: #333; 
+}
+
+p { 
+  color: #666; 
+  margin-bottom: 20px; 
+}
+
+input {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
+input:focus { 
+  outline: none; 
+  border-color: #667eea; 
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 12px;
+  background: #667eea;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+button:hover { 
+  background: #556cd6; 
+}
+
+button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.error {
+  color: red;
+  margin-top: 10px;
+  display: none;
+  font-weight: 600;
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 20px;
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.back-link:hover { 
+  color: #556cd6; 
+}

@@ -5,43 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Layar Karaoke Bus</title>
 <link rel="stylesheet" href="css/display.css">
-<style>
-/* Tombol Logout untuk Display */
-.display-logout-btn {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 12px 24px;
-  background: rgba(239, 68, 68, 0.9);
-  backdrop-filter: blur(10px);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-.display-logout-btn:hover {
-  background: rgba(220, 38, 38, 0.95);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-}
-
-.display-logout-btn:active {
-  transform: translateY(0);
-}
-</style>
 </head>
 <body>
 <!-- Tombol Logout -->
-<button onclick="logout()" class="display-logout-btn">
+<button id="logout-btn" class="display-logout-btn">
   <span>🚪</span>
   <span>Logout</span>
 </button>
@@ -64,64 +31,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="js/firebase.js"></script>
 <script src="js/room.js"></script>
-<script>
-// ========= 🔐 SECURITY CHECK - JANGAN DIHAPUS! =========
-(async function() {
-  const isAuthenticated = sessionStorage.getItem("displayAuth") === "authenticated";
-  const displayToken = sessionStorage.getItem("display_token");
-  
-  // ✅ CEK TOKEN - Harus ada dan valid
-  if (!isAuthenticated || !displayToken) {
-    console.warn('⚠️ Unauthorized display access attempt blocked!');
-    await customWarning("Anda harus login sebagai display terlebih dahulu!", "Akses Ditolak");
-    window.location.replace("display-login.html");
-    throw new Error("Unauthorized access");
-  }
-  
-  // ✅ CEK SESSION TIMEOUT (8 jam)
-  const loginTime = sessionStorage.getItem("displayLoginTime");
-  const eightHours = 8 * 60 * 60 * 1000;
-  
-  if (loginTime && (Date.now() - parseInt(loginTime)) > eightHours) {
-    await customWarning("Sesi display Anda telah berakhir (8 jam). Silakan login kembali.", "Sesi Berakhir");
-    sessionStorage.removeItem("displayAuth");
-    sessionStorage.removeItem("displayLoginTime");
-    sessionStorage.removeItem("display_token");
-    window.location.replace("display-login.html");
-    throw new Error("Session expired");
-  }
-  
-  console.log('✅ Display access granted - Token valid');
-})();
-// ========= END SECURITY CHECK =========
-
-// ✅ LOGOUT FUNCTION WITH CONFIRMATION
-async function logout() {
-  const result = await customConfirm(
-    'Layar karaoke akan berhenti dan Anda perlu login kembali untuk mengaktifkannya.', 
-    {
-      title: 'Keluar dari Display?',
-      icon: '🚪',
-      confirmText: 'Ya, Logout',
-      cancelText: 'Batal',
-      confirmClass: 'custom-modal-btn-danger'
-    }
-  );
-  
-  if (result) {
-    // Hapus auth & token
-    sessionStorage.removeItem("displayAuth");
-    sessionStorage.removeItem("displayLoginTime");
-    sessionStorage.removeItem("display_token");
-    
-    await customSuccess("Logout berhasil! Display akan dimatikan.", "Sampai Jumpa!");
-    
-    setTimeout(() => {
-      window.location.replace("display-login.html");
-    }, 1500);
-  }
-}
-</script>
+<script src="js/display-page.js"></script>
 <script src="js/display.js"></script>
 </body>
 </html>

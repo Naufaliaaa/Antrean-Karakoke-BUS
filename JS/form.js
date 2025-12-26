@@ -1,4 +1,6 @@
-//FILE form.js
+/*************************************************
+ * FORM.JS – WITH YOUTUBE EMBED VALIDATION
+ *************************************************/
 
 // ================= INIT ROOM SYSTEM =================
 console.log('🔄 Initializing room system...');
@@ -91,6 +93,38 @@ function getNameFromDevice(deviceId) {
   });
 }
 
+// ================= 🆕 VALIDATE YOUTUBE EMBED =================
+async function validateYouTubeEmbed(videoId) {
+  try {
+    console.log("🔍 Checking embed status for:", videoId);
+    
+    const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+    
+    const response = await fetch(oEmbedUrl);
+    
+    if (response.ok) {
+      console.log("✅ Video can be embedded");
+      return { 
+        canEmbed: true, 
+        reason: null 
+      };
+    } else {
+      console.warn("⚠️ Video cannot be embedded");
+      return { 
+        canEmbed: false, 
+        reason: "Video ini tidak bisa diputar di layar karaoke (embed dinonaktifkan oleh pemilik video atau ada pembatasan copyright)."
+      };
+    }
+  } catch (error) {
+    console.error("❌ Embed check failed:", error);
+    // Jika gagal cek, tetap allow
+    return { 
+      canEmbed: true, 
+      reason: null 
+    };
+  }
+}
+
 // ================= SUBMIT SONG =================
 async function submitSong() {
   const nameInput = document.getElementById("name");
@@ -112,6 +146,14 @@ async function submitSong() {
   const videoId = extractVideoId(link);
   if (!videoId) {
     showAlert("❌ Link YouTube tidak valid!", "error");
+    return;
+  }
+
+  // ✅ VALIDASI EMBED
+  const embedCheck = await validateYouTubeEmbed(videoId);
+  
+  if (!embedCheck.canEmbed) {
+    showAlert(`⚠️ ${embedCheck.reason} Silakan pilih video lain.`, "error");
     return;
   }
   

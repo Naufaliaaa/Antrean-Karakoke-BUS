@@ -9,10 +9,10 @@
 <body>
 <div class="container">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-<a href="#" onclick="goBackToBusMenu()" class="back-button">
+<a href="#" id="back-btn" class="back-button">
 <span>🏠</span><span>Kembali ke Menu Bus</span>
 </a>
-<button onclick="logout()" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3); font-size: 14px;">
+<button id="logout-btn" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3); font-size: 14px;">
 <span>🚪</span><span>Logout</span>
 </button>
 </div>
@@ -58,79 +58,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="js/firebase.js"></script>
 <script src="js/room.js"></script>
-<script>
-// ✅ FIX: Ubah 'const roomId' jadi 'let adminRoomId' untuk hindari duplicate
-(function() {
-const urlParams = new URLSearchParams(window.location.search);
-let adminRoomId = urlParams.get('room');
-if (adminRoomId) {
-localStorage.setItem('karaoke_room_id', adminRoomId);
-  }
-})();
-
-// Fungsi kembali ke menu bus
-async function goBackToBusMenu() {
-const result = await customConfirm(
-'Apakah Anda yakin ingin kembali ke menu bus?', 
-{
-title: 'Keluar dari Admin Panel',
-icon: '🏠',
-confirmText: 'Ya, Kembali',
-cancelText: 'Batal'
-}
-  );
-  
-if (result) {
-const roomId = localStorage.getItem('karaoke_room_id');
-if (roomId) {
-window.location.href = `bus-menu.html?room=${roomId}`;
-    } else {
-window.location.href = 'index.html';
-    }
-  }
-}
-
-// Cek auth & timeout
-(async function() {
-const isAuthenticated = sessionStorage.getItem("adminAuth") === "authenticated";
-if (!isAuthenticated) {
-await customWarning("Anda harus login sebagai admin terlebih dahulu!", "Akses Ditolak");
-window.location.replace("admin-login.html");
-throw new Error("Unauthorized access");
-  }
-const loginTime = sessionStorage.getItem("loginTime");
-const twoHours = 2 * 60 * 60 * 1000;
-if (loginTime && (Date.now() - parseInt(loginTime)) > twoHours) {
-await customWarning("Sesi admin Anda telah berakhir. Silakan login kembali.", "Sesi Berakhir");
-logout();
-  }
-})();
-
-// ✅ LOGOUT WITH CONFIRMATION
-async function logout() {
-const result = await customConfirm(
-'Anda akan keluar dari panel admin. Anda perlu login kembali untuk mengakses panel ini.', 
-{
-title: 'Konfirmasi Logout',
-icon: '🚪',
-confirmText: 'Ya, Logout',
-cancelText: 'Batal',
-confirmClass: 'custom-modal-btn-danger'
-}
-  );
-  
-if (result) {
-sessionStorage.removeItem("adminAuth");
-sessionStorage.removeItem("loginTime");
-    
-await customSuccess("Logout berhasil! Anda akan diarahkan ke halaman login.", "Sampai Jumpa!");
-    
-setTimeout(() => {
-window.location.replace("admin-login.html");
-    }, 1500);
-  }
-}
-</script>
+<script src="js/admin-page.js"></script>
 <script src="js/admin.js"></script>
 </body>
 </html>

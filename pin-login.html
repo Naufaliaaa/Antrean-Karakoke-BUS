@@ -4,85 +4,14 @@
 <meta charset="UTF-8">
 <title>Masuk ke Bus - Karaoke Bus</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body {
-font-family: Arial, sans-serif;
-background: linear-gradient(135deg, #667eea, #764ba2);
-height: 100vh;
-display: flex;
-justify-content: center;
-align-items: center;
-margin: 0;
-}
-.card {
-background: #fff;
-padding: 40px;
-border-radius: 20px;
-width: 100%;
-max-width: 360px;
-box-shadow: 0 20px 50px rgba(0,0,0,.3);
-text-align: center;
-}
-h1 { margin-bottom: 20px; color: #333; }
-p { color: #666; margin-bottom: 20px; }
-input {
-width: 100%;
-padding: 15px;
-border-radius: 12px;
-border: 1px solid #ccc;
-font-size: 24px;
-text-align: center;
-letter-spacing: 8px;
-margin-bottom: 20px;
-box-sizing: border-box;
-}
-button {
-width: 100%;
-padding: 15px;
-background: #667eea;
-color: white;
-border: none;
-border-radius: 12px;
-font-size: 18px;
-cursor: pointer;
-transition: all 0.3s;
-}
-button:hover { background: #556cd6; }
-button:disabled {
-background: #ccc;
-cursor: not-allowed;
-}
-.error {
-color: red;
-margin-top: 10px;
-display: none;
-font-weight: 600;
-}
-.back-button {
-display: inline-flex;
-align-items: center;
-gap: 8px;
-margin-top: 20px;
-padding: 10px 20px;
-background: #f1f5f9;
-color: #64748b;
-text-decoration: none;
-border-radius: 12px;
-font-weight: 600;
-transition: all 0.3s;
-}
-.back-button:hover {
-background: #e2e8f0;
-color: #334155;
-}
-</style>
+<link rel="stylesheet" href="css/pin-login.css">
 </head>
 <body>
 <div class="card">
 <h1>🔑 Masuk ke Bus</h1>
 <p>Masukkan PIN 6 digit</p>
-<input type="text" id="pin" maxlength="6" placeholder="______" onkeypress="if(event.key==='Enter') verifyPin()" autofocus>
-<button onclick="verifyPin()" id="submit-btn">Masuk</button>
+<input type="text" id="pin" maxlength="6" placeholder="______" autofocus>
+<button id="submit-btn">Masuk</button>
 <div class="error" id="error">PIN salah</div>
 <a href="index.html" class="back-button">
 <span>←</span>
@@ -97,91 +26,6 @@ color: #334155;
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="js/firebase.js"></script>
 <script src="js/room.js"></script>
-<script>
-// ========= KEAMANAN: CEK DIRECT ACCESS =========
-const urlParams = new URLSearchParams(window.location.search);
-const roomId = urlParams.get('room');
-
-if (!roomId) {
-  window.location.href = 'index.html';
-}
-
-// ========= HAPUS TOKEN LAMA (Agar selalu diminta PIN) =========
-sessionStorage.removeItem(`room_token_${roomId}`);
-sessionStorage.removeItem(`room_pin_verified_${roomId}`);
-
-// ========= VERIFIKASI PIN =========
-async function verifyPin() {
-  const pinInput = document.getElementById('pin').value.trim();
-  const errorEl = document.getElementById('error');
-  const submitBtn = document.getElementById('submit-btn');
-  
-  if (pinInput.length !== 6 || !/^\d{6}$/.test(pinInput)) {
-    errorEl.textContent = 'PIN harus 6 digit angka';
-    errorEl.style.display = 'block';
-    return;
-  }
-  
-  // Disable button saat proses
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Memverifikasi...';
-  
-  const pin = Number(pinInput);
-  const pinRef = db.ref(`karaoke/room/${roomId}/Setting/pin`);
-  
-  try {
-    const snap = await pinRef.once('value');
-    
-    if (snap.exists() && snap.val() === pin) {
-      // ✅ PIN BENAR - Generate Token
-      const token = generateSecureToken(roomId, pin);
-      
-      sessionStorage.setItem(`room_token_${roomId}`, token);
-      sessionStorage.setItem(`room_pin_verified_${roomId}`, Date.now());
-      localStorage.setItem('karaoke_room_id', roomId);
-      
-      console.log('✅ PIN verified, token generated');
-      
-      // Redirect ke bus menu
-      window.location.href = `bus-menu.html?room=${roomId}`;
-    } else {
-      // ❌ PIN SALAH
-      errorEl.textContent = 'PIN salah';
-      errorEl.style.display = 'block';
-      document.getElementById('pin').value = '';
-      document.getElementById('pin').focus();
-      
-      setTimeout(() => { 
-        errorEl.style.display = 'none'; 
-      }, 3000);
-      
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Masuk';
-    }
-  } catch (e) {
-    // ✅ GUNAKAN CUSTOM ERROR MODAL
-    await customError('Gagal memeriksa PIN. Silakan coba lagi.', 'Koneksi Error');
-    console.error('PIN verification error:', e);
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Masuk';
-  }
-}
-
-// ========= GENERATE SECURE TOKEN =========
-function generateSecureToken(roomId, pin) {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
-  const data = `${roomId}-${pin}-${timestamp}-${random}`;
-  
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  
-  return `TOKEN_${Math.abs(hash).toString(36)}_${timestamp}`;
-}
-</script>
+<script src="js/pin-login.js"></script>
 </body>
 </html>
