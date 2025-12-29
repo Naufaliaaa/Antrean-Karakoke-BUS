@@ -3,58 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Video Panel - Karaoke Bus</title>
+<title>Camera Panel - Karaoke Bus</title>
 <link rel="stylesheet" href="css/video-panel.css">
 </head>
 <body>
-<!-- Back Button -->
-<a href="#" id="back-btn" class="back-button">
-<span>←</span>
-<span>Kembali ke Menu Bus</span>
-</a>
-
-<!-- Main Container -->
 <div class="container">
 <!-- Header -->
 <div class="header">
-<h1>🎥 Video Panel</h1>
-<p class="subtitle">Tampilan Kamera Real-time</p>
-<div class="status" id="connection-status">
-<span class="status-dot"></span>
-<span class="status-text">Menunggu Kamera...</span>
-</div>
+<a href="#" id="back-btn" class="back-button">
+<span>←</span>
+<span>Kembali</span>
+</a>
+<h1>🎥 Camera Panel</h1>
+<p class="subtitle">Streaming ke Display Bus</p>
 </div>
 
-<!-- Video Display -->
-<div class="video-container" id="video-container">
-<video id="remote-video" autoplay playsinline></video>
-<div class="video-overlay" id="video-overlay">
-<div class="overlay-content">
-<div class="qr-section">
-<h2>📱 Scan QR untuk Mulai Streaming</h2>
-<div class="qr-code">
-<img id="qr-image" alt="QR Code">
-</div>
-<p class="qr-info">Atau buka link:</p>
-<div class="camera-link" id="camera-link">Loading...</div>
-</div>
+<!-- Camera Preview -->
+<div class="camera-preview" id="camera-preview">
+<video id="local-video" autoplay playsinline muted></video>
+<div class="camera-overlay" id="camera-overlay">
+<div class="overlay-message">
+<span class="icon">📷</span>
+<p>Kamera Belum Aktif</p>
+<button class="btn-primary" id="start-camera-btn">Aktifkan Kamera</button>
 </div>
 </div>
 </div>
 
-<!-- Info Panel -->
-<div class="info-panel">
-<div class="info-item">
-<span class="info-label">Room ID:</span>
-<span class="info-value" id="room-id-display">-</span>
+<!-- Controls -->
+<div class="controls-panel">
+<div class="status-bar">
+<div class="status-item">
+<span class="label">Status:</span>
+<span class="value" id="connection-status">Offline</span>
+<span class="status-dot" id="status-dot"></span>
 </div>
-<div class="info-item">
-<span class="info-label">Viewer:</span>
-<span class="info-value" id="viewer-info">-</span>
+<div class="status-item">
+<span class="label">Streaming:</span>
+<span class="value" id="streaming-status">Tidak Aktif</span>
 </div>
-<div class="info-item">
-<span class="info-label">Kualitas:</span>
-<span class="info-value" id="quality-info">-</span>
+<div class="status-item" id="recording-status-bar" style="display: none;">
+<span class="label">Recording:</span>
+<span class="value recording-time" id="recording-time">00:00</span>
+</div>
+</div>
+
+<div class="control-buttons">
+<button class="control-btn secondary" id="flip-camera-btn" title="Balik Kamera" disabled>
+<span>🔄</span>
+<span>Balik Kamera</span>
+</button>
+<button class="control-btn primary" id="record-btn" title="Mulai Rekam" disabled>
+<span id="record-icon">⏺️</span>
+<span id="record-text">Mulai Rekam</span>
+</button>
+<button class="control-btn danger" id="stop-camera-btn" title="Stop Kamera" style="display: none;">
+<span>⏹️</span>
+<span>Stop Kamera</span>
+</button>
 </div>
 </div>
 </div>
@@ -64,6 +70,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="js/firebase.js"></script>
 <script src="js/room.js"></script>
+<script src="js/custom-modal.js"></script>
 <script src="js/video-panel.js"></script>
 </body>
 </html>

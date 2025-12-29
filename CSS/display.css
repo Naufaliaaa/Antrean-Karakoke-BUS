@@ -1,4 +1,4 @@
-/* display.css - Complete */
+/* display.css - Complete with PiP */
 
 * {
   margin: 0;
@@ -45,11 +45,117 @@ body {
   transform: translateY(0);
 }
 
-/* ===== PLAYER ===== */
-#player {
+/* ===== PLAYER CONTAINER ===== */
+#player-container {
+  position: relative;
   width: 100%;
   height: 55vh;
   background: #000;
+}
+
+#player {
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+/* ===== PiP CAMERA (Pojok Kanan Bawah) ===== */
+.pip-camera {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 280px;
+  height: 160px;
+  background: #000;
+  border-radius: 15px;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  z-index: 100;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInPiP 0.5s ease;
+}
+
+@keyframes slideInPiP {
+  from {
+    opacity: 0;
+    transform: translateX(100px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.pip-camera.hidden {
+  display: none;
+}
+
+.pip-camera:hover {
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+#pip-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror effect */
+}
+
+.pip-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(239, 68, 68, 0.9);
+  backdrop-filter: blur(10px);
+  padding: 6px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.pip-dot {
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+/* ===== Responsive PiP ===== */
+@media (max-width: 1024px) {
+  .pip-camera {
+    width: 220px;
+    height: 125px;
+    bottom: 15px;
+    right: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .pip-camera {
+    width: 180px;
+    height: 100px;
+    bottom: 10px;
+    right: 10px;
+  }
+  
+  .pip-label {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
 }
 
 /* ===== NOW PLAYING ===== */

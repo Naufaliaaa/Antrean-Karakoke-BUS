@@ -1,11 +1,10 @@
 /*************************************************
- * VIDEO-PANEL.JS - Display Side (Receiver)
- * WebRTC Video Streaming Receiver
+ * VIDEO-PANEL.JS - Admin Camera Panel with Recording
+ * Stream ke Display + Record ke Device
  *************************************************/
 
 // ========= GET ROOM ID =========
-const urlParams = new URLSearchParams(window.location.search);
-const roomId = urlParams.get('room') || localStorage.getItem('karaoke_room_id');
+const roomId = RoomManager.getRoomId();
 
 if (!roomId) {
   alert('Room ID tidak ditemukan!');
@@ -13,15 +12,20 @@ if (!roomId) {
 }
 
 // ========= ELEMENTS =========
-const remoteVideo = document.getElementById('remote-video');
-const videoOverlay = document.getElementById('video-overlay');
-const connectionStatus = document.getElementById('connection-status');
-const roomIdDisplay = document.getElementById('room-id-display');
-const viewerInfo = document.getElementById('viewer-info');
-const qualityInfo = document.getElementById('quality-info');
-const cameraLink = document.getElementById('camera-link');
-const qrImage = document.getElementById('qr-image');
+const localVideo = document.getElementById('local-video');
+const cameraOverlay = document.getElementById('camera-overlay');
+const startCameraBtn = document.getElementById('start-camera-btn');
+const stopCameraBtn = document.getElementById('stop-camera-btn');
+const recordBtn = document.getElementById('record-btn');
+const flipCameraBtn = document.getElementById('flip-camera-btn');
 const backBtn = document.getElementById('back-btn');
+const connectionStatus = document.getElementById('connection-status');
+const streamingStatus = document.getElementById('streaming-status');
+const recordingTime = document.getElementById('recording-time');
+const recordingStatusBar = document.getElementById('recording-status-bar');
+const statusDot = document.getElementById('status-dot');
+const recordIcon = document.getElementById('record-icon');
+const recordText = document.getElementById('record-text');
 
 // ========= WEBRTC CONFIG =========
 const configuration = {
@@ -31,208 +35,383 @@ const configuration = {
   ]
 };
 
+// ========= STATE =========
+let localStream = null;
 let peerConnection = null;
 let videoSessionRef = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+let recordingStartTime = null;
+let recordingInterval = null;
+let currentFacingMode = 'user';
+let isCameraActive = false;
 
 // ========= INIT =========
-async function init() {
-  console.log('🎥 Initializing video panel...');
+function init() {
+  console.log('🎥 Initializing camera panel...');
   
-  // Set room ID
-  roomIdDisplay.textContent = roomId;
-  
-  // Generate camera link
-  const cameraUrl = `${window.location.origin}${window.location.pathname.replace('video-panel.html', '')}camera-stream.html?room=${roomId}`;
-  cameraLink.textContent = cameraUrl;
-  
-  // Generate QR code
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(cameraUrl)}`;
-  qrImage.src = qrUrl;
-  
-  // Setup Firebase reference
   videoSessionRef = db.ref(`karaoke/room/${roomId}/videoSession`);
   
-  // Listen for incoming stream
-  listenForStream();
+  // Event listeners
+  startCameraBtn.addEventListener('click', startCamera);
+  stopCameraBtn.addEventListener('click', stopCamera);
+  recordBtn.addEventListener('click', toggleRecording);
+  flipCameraBtn.addEventListener('click', flipCamera);
+  backBtn.addEventListener('click', handleBack);
   
-  console.log('✅ Video panel ready');
+  console.log('✅ Camera panel ready');
 }
 
-// ========= LISTEN FOR STREAM =========
-function listenForStream() {
-  console.log('👂 Listening for camera stream...');
-  
-  // Listen for offer from camera
-  videoSessionRef.child('offer').on('value', async (snapshot) => {
-    if (!snapshot.exists()) return;
-    
-    const offer = snapshot.val();
-    console.log('📩 Received offer from camera');
-    
-    await handleOffer(offer);
-  });
-  
-  // Listen for ICE candidates
-  videoSessionRef.child('cameraCandidates').on('child_added', async (snapshot) => {
-    const candidate = snapshot.val();
-    console.log('🧊 Received ICE candidate');
-    
-    if (peerConnection && candidate) {
-      try {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (e) {
-        console.error('Error adding ICE candidate:', e);
-      }
-    }
-  });
-  
-  // Listen for camera status
-  videoSessionRef.child('cameraStatus').on('value', (snapshot) => {
-    const status = snapshot.val();
-    updateConnectionStatus(status);
-  });
-}
-
-// ========= HANDLE OFFER =========
-async function handleOffer(offer) {
+// ========= START CAMERA =========
+async function startCamera() {
   try {
-    // Create peer connection
-    peerConnection = new RTCPeerConnection(configuration);
+    startCameraBtn.disabled = true;
+    startCameraBtn.textContent = 'Memulai...';
     
-    // Handle incoming tracks
-    peerConnection.ontrack = (event) => {
-      console.log('📹 Received remote stream');
-      remoteVideo.srcObject = event.streams[0];
-      videoOverlay.classList.add('hidden');
-      updateConnectionStatus('connected');
-      
-      // Get video stats
-      monitorVideoQuality();
+    // Get camera stream
+    const constraints = {
+      video: {
+        facingMode: currentFacingMode,
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: true
     };
     
-    // Handle ICE candidates
-    peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
-        videoSessionRef.child('displayCandidates').push(event.candidate.toJSON());
-      }
-    };
+    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    localVideo.srcObject = localStream;
     
-    // Handle connection state
-    peerConnection.onconnectionstatechange = () => {
-      console.log('Connection state:', peerConnection.connectionState);
-      
-      if (peerConnection.connectionState === 'disconnected' || 
-          peerConnection.connectionState === 'failed') {
-        handleDisconnection();
-      }
-    };
+    // Hide overlay
+    cameraOverlay.classList.add('hidden');
     
-    // Set remote description
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    // Update UI
+    isCameraActive = true;
+    startCameraBtn.style.display = 'none';
+    stopCameraBtn.style.display = 'inline-flex';
+    recordBtn.disabled = false;
+    flipCameraBtn.disabled = false;
     
-    // Create answer
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
+    connectionStatus.textContent = 'Online';
+    statusDot.classList.add('online');
     
-    // Send answer to camera
-    await videoSessionRef.child('answer').set(peerConnection.localDescription.toJSON());
+    // Setup WebRTC
+    await setupWebRTC();
     
-    console.log('✅ Answer sent to camera');
+    // Update Firebase status
+    await videoSessionRef.child('cameraStatus').set('connected');
+    
+    streamingStatus.textContent = 'Aktif (Tampil di Display)';
+    
+    console.log('✅ Camera started and streaming');
     
   } catch (error) {
-    console.error('❌ Error handling offer:', error);
-    updateConnectionStatus('error');
+    console.error('❌ Camera error:', error);
+    await customError('Gagal mengakses kamera: ' + error.message);
+    startCameraBtn.disabled = false;
+    startCameraBtn.textContent = 'Aktifkan Kamera';
   }
 }
 
-// ========= MONITOR VIDEO QUALITY =========
-function monitorVideoQuality() {
-  setInterval(async () => {
-    if (!peerConnection) return;
-    
-    try {
-      const stats = await peerConnection.getStats();
-      
-      stats.forEach(report => {
-        if (report.type === 'inbound-rtp' && report.mediaType === 'video') {
-          const width = report.frameWidth || 0;
-          const height = report.frameHeight || 0;
-          const fps = report.framesPerSecond || 0;
-          
-          qualityInfo.textContent = `${width}x${height} @ ${fps}fps`;
-        }
-      });
-    } catch (e) {
-      console.error('Error getting stats:', e);
+// ========= STOP CAMERA =========
+async function stopCamera() {
+  const result = await customConfirm(
+    'Camera akan dimatikan dan tidak tampil di display lagi.',
+    {
+      title: 'Stop Kamera?',
+      icon: '📷',
+      confirmText: 'Ya, Stop',
+      cancelText: 'Batal'
     }
-  }, 2000);
-}
-
-// ========= UPDATE CONNECTION STATUS =========
-function updateConnectionStatus(status) {
-  const statusText = connectionStatus.querySelector('.status-text');
+  );
   
-  connectionStatus.className = 'status';
+  if (!result) return;
   
-  if (status === 'connected') {
-    connectionStatus.classList.add('connected');
-    statusText.textContent = 'Terhubung';
-    viewerInfo.textContent = 'Kamera Aktif';
-  } else if (status === 'disconnected') {
-    connectionStatus.classList.add('disconnected');
-    statusText.textContent = 'Terputus';
-    viewerInfo.textContent = 'Tidak Ada';
-  } else if (status === 'waiting') {
-    statusText.textContent = 'Menunggu Kamera...';
-    viewerInfo.textContent = 'Menunggu...';
-  } else {
-    statusText.textContent = 'Error';
-    viewerInfo.textContent = 'Error';
+  // Stop recording if active
+  if (isRecording) {
+    stopRecording();
   }
-}
-
-// ========= HANDLE DISCONNECTION =========
-function handleDisconnection() {
-  console.log('⚠️ Camera disconnected');
   
-  remoteVideo.srcObject = null;
-  videoOverlay.classList.remove('hidden');
-  updateConnectionStatus('disconnected');
+  // Stop camera stream
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
   
+  // Close peer connection
   if (peerConnection) {
     peerConnection.close();
     peerConnection = null;
   }
   
-  // Clear Firebase session
-  videoSessionRef.child('answer').remove();
-  videoSessionRef.child('displayCandidates').remove();
+  // Clear video
+  localVideo.srcObject = null;
+  
+  // Show overlay
+  cameraOverlay.classList.remove('hidden');
+  
+  // Update UI
+  isCameraActive = false;
+  startCameraBtn.style.display = 'inline-flex';
+  stopCameraBtn.style.display = 'none';
+  recordBtn.disabled = true;
+  flipCameraBtn.disabled = true;
+  
+  connectionStatus.textContent = 'Offline';
+  statusDot.classList.remove('online');
+  streamingStatus.textContent = 'Tidak Aktif';
+  
+  // Update Firebase
+  await videoSessionRef.child('cameraStatus').set('disconnected');
+  await videoSessionRef.child('offer').remove();
+  await videoSessionRef.child('cameraCandidates').remove();
+  
+  console.log('⏹️ Camera stopped');
 }
 
-// ========= BACK BUTTON =========
-backBtn.addEventListener('click', async (e) => {
+// ========= SETUP WEBRTC =========
+async function setupWebRTC() {
+  try {
+    peerConnection = new RTCPeerConnection(configuration);
+    
+    // Add tracks
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
+    
+    // Handle ICE candidates
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        videoSessionRef.child('cameraCandidates').push(event.candidate.toJSON());
+      }
+    };
+    
+    // Create offer
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    
+    // Send offer
+    await videoSessionRef.child('offer').set(peerConnection.localDescription.toJSON());
+    
+    console.log('📤 Offer sent to display');
+    
+    // Listen for answer
+    videoSessionRef.child('answer').on('value', async (snapshot) => {
+      if (!snapshot.exists() || peerConnection.currentRemoteDescription) return;
+      
+      const answer = snapshot.val();
+      console.log('📩 Received answer from display');
+      
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    });
+    
+    // Listen for ICE candidates from display
+    videoSessionRef.child('displayCandidates').on('child_added', async (snapshot) => {
+      const candidate = snapshot.val();
+      
+      if (peerConnection && candidate) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error('Error adding ICE candidate:', e);
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ WebRTC error:', error);
+  }
+}
+
+// ========= FLIP CAMERA =========
+async function flipCamera() {
+  try {
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    
+    // Stop current stream
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
+    
+    // Get new stream
+    const constraints = {
+      video: {
+        facingMode: currentFacingMode,
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: true
+    };
+    
+    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    localVideo.srcObject = localStream;
+    
+    // Replace tracks in peer connection
+    if (peerConnection) {
+      const senders = peerConnection.getSenders();
+      const videoSender = senders.find(s => s.track?.kind === 'video');
+      const audioSender = senders.find(s => s.track?.kind === 'audio');
+      
+      if (videoSender) {
+        videoSender.replaceTrack(localStream.getVideoTracks()[0]);
+      }
+      
+      if (audioSender) {
+        audioSender.replaceTrack(localStream.getAudioTracks()[0]);
+      }
+    }
+    
+    console.log('🔄 Camera flipped');
+    
+  } catch (error) {
+    console.error('❌ Flip error:', error);
+    await customError('Gagal membalik kamera');
+  }
+}
+
+// ========= TOGGLE RECORDING =========
+function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+// ========= START RECORDING =========
+function startRecording() {
+  try {
+    recordedChunks = [];
+    
+    const options = {
+      mimeType: 'video/webm;codecs=vp9',
+      videoBitsPerSecond: 2500000
+    };
+    
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      options.mimeType = 'video/webm';
+    }
+    
+    mediaRecorder = new MediaRecorder(localStream, options);
+    
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    };
+    
+    mediaRecorder.onstop = () => {
+      saveRecording();
+    };
+    
+    mediaRecorder.start();
+    isRecording = true;
+    
+    // Update UI
+    recordBtn.classList.add('recording');
+    recordIcon.textContent = '⏹️';
+    recordText.textContent = 'Stop Rekam';
+    recordingStatusBar.style.display = 'flex';
+    
+    // Start timer
+    recordingStartTime = Date.now();
+    recordingInterval = setInterval(updateRecordingTime, 1000);
+    
+    console.log('🔴 Recording started');
+    
+  } catch (error) {
+    console.error('❌ Recording error:', error);
+    customError('Gagal memulai rekaman');
+  }
+}
+
+// ========= STOP RECORDING =========
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    
+    // Update UI
+    recordBtn.classList.remove('recording');
+    recordIcon.textContent = '⏺️';
+    recordText.textContent = 'Mulai Rekam';
+    recordingStatusBar.style.display = 'none';
+    
+    // Stop timer
+    clearInterval(recordingInterval);
+    recordingTime.textContent = '00:00';
+    
+    console.log('⏹️ Recording stopped');
+  }
+}
+
+// ========= UPDATE RECORDING TIME =========
+function updateRecordingTime() {
+  const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  
+  recordingTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+// ========= SAVE RECORDING =========
+async function saveRecording() {
+  const blob = new Blob(recordedChunks, { type: 'video/webm' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = `karaoke-${roomId}-${Date.now()}.webm`;
+  
+  document.body.appendChild(a);
+  a.click();
+  
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+  
+  console.log('💾 Recording saved');
+  
+  await customSuccess('Video berhasil disimpan!', 'Rekaman Tersimpan');
+}
+
+// ========= HANDLE BACK =========
+async function handleBack(e) {
   e.preventDefault();
   
-  // Close connection
-  if (peerConnection) {
-    peerConnection.close();
+  if (isCameraActive || isRecording) {
+    const result = await customConfirm(
+      'Camera sedang aktif. Yakin ingin keluar?',
+      {
+        title: 'Keluar?',
+        icon: '⚠️',
+        confirmText: 'Ya, Keluar',
+        cancelText: 'Batal'
+      }
+    );
+    
+    if (!result) return;
+    
+    if (isRecording) stopRecording();
+    if (isCameraActive) await stopCamera();
   }
   
-  // Clear session
-  await videoSessionRef.remove();
-  
-  // Go back
-  const roomId = localStorage.getItem('karaoke_room_id');
   window.location.href = `bus-menu.html?room=${roomId}`;
-});
+}
 
-// ========= CLEANUP ON PAGE UNLOAD =========
-window.addEventListener('beforeunload', () => {
+// ========= CLEANUP =========
+window.addEventListener('beforeunload', async () => {
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+  }
+  
   if (peerConnection) {
     peerConnection.close();
   }
-  videoSessionRef.child('answer').remove();
-  videoSessionRef.child('displayCandidates').remove();
+  
+  await videoSessionRef.child('cameraStatus').set('disconnected');
 });
 
 // ========= START =========

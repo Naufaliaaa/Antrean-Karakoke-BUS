@@ -13,7 +13,20 @@
   <span>Logout</span>
 </button>
 
-<div id="player"></div>
+<!-- YouTube Player Container -->
+<div id="player-container">
+  <div id="player"></div>
+  
+  <!-- PiP Camera (Pojok Kanan Bawah) -->
+  <div id="pip-camera" class="pip-camera hidden">
+    <video id="pip-video" autoplay playsinline></video>
+    <div class="pip-label">
+      <span class="pip-dot"></span>
+      <span>LIVE</span>
+    </div>
+  </div>
+</div>
+
 <div class="now-playing">
 <div class="now-playing-label">Sedang Bernyanyi</div>
 <div class="now-playing-name" id="now">Menunggu lagu...</div>
