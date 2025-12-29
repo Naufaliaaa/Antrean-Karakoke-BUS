@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Panel - Karaoke Bus</title>
+<link rel="stylesheet" href="css/video-panel.css">
+</head>
+<body>
+<!-- Back Button -->
+<a href="#" id="back-btn" class="back-button">
+<span>←</span>
+<span>Kembali ke Menu Bus</span>
+</a>
+
+<!-- Main Container -->
+<div class="container">
+<!-- Header -->
+<div class="header">
+<h1>🎥 Video Panel</h1>
+<p class="subtitle">Tampilan Kamera Real-time</p>
+<div class="status" id="connection-status">
+<span class="status-dot"></span>
+<span class="status-text">Menunggu Kamera...</span>
+</div>
+</div>
+
+<!-- Video Display -->
+<div class="video-container" id="video-container">
+<video id="remote-video" autoplay playsinline></video>
+<div class="video-overlay" id="video-overlay">
+<div class="overlay-content">
+<div class="qr-section">
+<h2>📱 Scan QR untuk Mulai Streaming</h2>
+<div class="qr-code">
+<img id="qr-image" alt="QR Code">
+</div>
+<p class="qr-info">Atau buka link:</p>
+<div class="camera-link" id="camera-link">Loading...</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Info Panel -->
+<div class="info-panel">
+<div class="info-item">
+<span class="info-label">Room ID:</span>
+<span class="info-value" id="room-id-display">-</span>
+</div>
+<div class="info-item">
+<span class="info-label">Viewer:</span>
+<span class="info-value" id="viewer-info">-</span>
+</div>
+<div class="info-item">
+<span class="info-label">Kualitas:</span>
+<span class="info-value" id="quality-info">-</span>
+</div>
+</div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/room.js"></script>
+<script src="js/video-panel.js"></script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 /*************************************************
- * BUS-MENU.JS - Bus Menu Logic
+ * BUS-MENU.JS - Bus Menu Logic (With Video Panel)
  *************************************************/
 
 // ========= SECURITY CHECK =========
@@ -97,6 +97,11 @@ function goToForm(e) {
   window.location.href = `form.html?room=${roomId}`;
 }
 
+function goToVideo(e) {
+  e.preventDefault();
+  window.location.href = `video-panel.html?room=${roomId}`;
+}
+
 function goToAdmin(e) {
   e.preventDefault();
   window.location.href = `admin-login.html?room=${roomId}`;
@@ -106,6 +111,7 @@ function goToAdmin(e) {
 document.getElementById('back-button').addEventListener('click', confirmExit);
 document.getElementById('display-btn').addEventListener('click', goToDisplay);
 document.getElementById('form-btn').addEventListener('click', goToForm);
+document.getElementById('video-btn').addEventListener('click', goToVideo);
 document.getElementById('admin-btn').addEventListener('click', goToAdmin);
 
 // ========= INIT =========
