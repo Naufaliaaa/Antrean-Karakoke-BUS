@@ -1,5 +1,5 @@
 /*************************************************
- * BUS-MENU.JS - Bus Menu Logic (With Video Panel)
+ * BUS-MENU.JS - Bus Menu Logic (With Video Panel + Emote)
  *************************************************/
 
 // ========= SECURITY CHECK =========
@@ -97,6 +97,11 @@ function goToForm(e) {
   window.location.href = `form.html?room=${roomId}`;
 }
 
+function goToEmote(e) {
+  e.preventDefault();
+  window.location.href = `emote.html?room=${roomId}`;
+}
+
 function goToVideo(e) {
   e.preventDefault();
   window.location.href = `video-panel.html?room=${roomId}`;
@@ -111,6 +116,7 @@ function goToAdmin(e) {
 document.getElementById('back-button').addEventListener('click', confirmExit);
 document.getElementById('display-btn').addEventListener('click', goToDisplay);
 document.getElementById('form-btn').addEventListener('click', goToForm);
+document.getElementById('emote-btn').addEventListener('click', goToEmote); // ✨ BARU
 document.getElementById('video-btn').addEventListener('click', goToVideo);
 document.getElementById('admin-btn').addEventListener('click', goToAdmin);
 

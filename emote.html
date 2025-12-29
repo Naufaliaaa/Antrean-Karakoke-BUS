@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kirim Emote - Karaoke Bus</title>
+<link rel="stylesheet" href="css/emote.css">
+</head>
+<body>
+<div class="container">
+<!-- BACK BUTTON -->
+<a href="#" id="back-button" class="back-button">
+<span>←</span>
+<span>Kembali</span>
+</a>
+
+<!-- HEADER -->
+<div class="header">
+<div class="icon">🎭</div>
+<h1>Kirim Emote</h1>
+<p class="subtitle">Ekspresikan perasaan kamu ke layar karaoke!</p>
+</div>
+
+<!-- ALERT -->
+<div id="alert" class="alert"></div>
+
+<!-- NAME INPUT -->
+<div class="form-section">
+<div class="form-group">
+<label for="user-name">Nama Kamu</label>
+<input type="text" id="user-name" placeholder="Masukkan nama...">
+<p class="help-text">Nama akan tampil bersama emote di layar</p>
+</div>
+</div>
+
+<!-- EMOTE SELECTOR -->
+<div class="emote-section">
+<h2>Pilih Emote</h2>
+<div class="emote-grid">
+<!-- Tepuk Tangan -->
+<button class="emote-card" onclick="sendEmote('clap')">
+<div class="emote-icon">👏</div>
+<div class="emote-name">Tepuk Tangan</div>
+</button>
+
+<!-- Kagum -->
+<button class="emote-card" onclick="sendEmote('wow')">
+<div class="emote-icon">😍</div>
+<div class="emote-name">Kagum</div>
+</button>
+
+<!-- Jempol -->
+<button class="emote-card" onclick="sendEmote('thumbs')">
+<div class="emote-icon">👍</div>
+<div class="emote-name">Jempol</div>
+</button>
+
+<!-- Pusing -->
+<button class="emote-card" onclick="sendEmote('dizzy')">
+<div class="emote-icon">😵</div>
+<div class="emote-name">Pusing</div>
+</button>
+
+<!-- Ketawa -->
+<button class="emote-card" onclick="sendEmote('laugh')">
+<div class="emote-icon">😂</div>
+<div class="emote-name">Ketawa</div>
+</button>
+</div>
+</div>
+
+<!-- INFO -->
+<div class="info-box">
+<p>💡 <strong>Tips:</strong> Emote akan muncul di layar karaoke dan bergerak dari kanan ke kiri!</p>
+</div>
+
+<!-- RECENT EMOTES -->
+<div class="recent-section">
+<h3>🔥 Emote Terbaru</h3>
+<div id="recent-emotes" class="recent-list">
+<p class="empty-state">Belum ada emote yang dikirim</p>
+</div>
+</div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/room.js"></script>
+<script src="js/emote.js"></script>
+</body>
+</html>
