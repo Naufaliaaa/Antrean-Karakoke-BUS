@@ -1,6 +1,7 @@
 /*************************************************
- * DISPLAY.JS – COMPLETELY FIXED VERSION
- * Full Auto + Overlay Start + Error Message 3s + Room Support
+ * DISPLAY.JS – COMPLETELY FIXED VERSION WITH WEBRTC
+ * ✅ Full Auto + Overlay Start + Error Message 3s + Room Support
+ * ✅ WebRTC Receiver untuk PiP Camera
  *************************************************/
 
 // ========= INIT ROOM SYSTEM =========
@@ -21,6 +22,7 @@ console.log('✅ Room system initialized for display');
 
 // ========= GET QUEUE REF =========
 const queueRef = RoomManager.getQueueRef();
+const roomId = RoomManager.getRoomId();
 
 if (!queueRef) {
   console.error('❌ Queue reference not available');
@@ -29,6 +31,15 @@ if (!queueRef) {
 }
 
 console.log('✅ Queue reference obtained');
+console.log('✅ Room ID:', roomId);
+
+// ========= WEBRTC CONFIG =========
+const configuration = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+};
 
 // ========= KONFIG =========
 const MAX_DURATION = 600; // 10 menit
@@ -41,6 +52,12 @@ let countdownTimer = null;
 let remainingTime = MAX_DURATION;
 let watchdogInterval = null;
 
+// WebRTC State
+let peerConnection = null;
+let videoSessionRef = null;
+let remoteStream = null;
+let isPiPActive = false;
+
 // ========= 1. OVERLAY AKTIVASI =========
 document.body.insertAdjacentHTML('afterbegin', `
   <div id="start-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #1a1a1a, #000); z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; font-family: sans-serif;">
@@ -51,11 +68,14 @@ document.body.insertAdjacentHTML('afterbegin', `
   </div>
 `);
 
-function startSystem() {
+window.startSystem = function() {
   const overlay = document.getElementById('start-overlay');
   if (overlay) overlay.remove();
   console.log("🚀 System Started");
   checkAndPlayFirst();
+  
+  // Start WebRTC listener
+  initWebRTCReceiver();
   
   if (!watchdogInterval) {
     watchdogInterval = setInterval(checkPlayerHealth, 5000);
@@ -67,12 +87,136 @@ const tag = document.createElement("script");
 tag.src = "https://www.youtube.com/iframe_api";
 document.head.appendChild(tag);
 
-function onYouTubeIframeAPIReady() {
+window.onYouTubeIframeAPIReady = function() {
   console.log("✅ YouTube API Ready");
   isPlayerReady = true;
 }
 
-// ========= 3. CHECK & PLAY FIRST =========
+// ========= 3. WEBRTC RECEIVER (PIP CAMERA) =========
+function initWebRTCReceiver() {
+  console.log('📹 Initializing WebRTC receiver for PiP camera...');
+  
+  videoSessionRef = db.ref(`karaoke/room/${roomId}/videoSession`);
+  
+  // Listen for camera status
+  videoSessionRef.child('cameraStatus').on('value', (snapshot) => {
+    const status = snapshot.val();
+    console.log('📷 Camera status:', status);
+    
+    if (status === 'connected') {
+      console.log('✅ Camera connected, setting up WebRTC...');
+      setupWebRTCConnection();
+    } else if (status === 'disconnected') {
+      console.log('❌ Camera disconnected');
+      closePiPCamera();
+    }
+  });
+}
+
+async function setupWebRTCConnection() {
+  try {
+    console.log('🔗 Setting up WebRTC connection...');
+    
+    // Create peer connection
+    peerConnection = new RTCPeerConnection(configuration);
+    
+    // Handle incoming tracks
+    peerConnection.ontrack = (event) => {
+      console.log('📥 Received remote track:', event.streams[0]);
+      remoteStream = event.streams[0];
+      
+      // Display in PiP
+      const pipVideo = document.getElementById('pip-video');
+      const pipCamera = document.getElementById('pip-camera');
+      
+      if (pipVideo && pipCamera) {
+        pipVideo.srcObject = remoteStream;
+        pipCamera.classList.remove('hidden');
+        isPiPActive = true;
+        console.log('✅ PiP camera active');
+      }
+    };
+    
+    // Handle ICE candidates
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        videoSessionRef.child('displayCandidates').push(event.candidate.toJSON());
+      }
+    };
+    
+    // Handle connection state
+    peerConnection.onconnectionstatechange = () => {
+      console.log('WebRTC connection state:', peerConnection.connectionState);
+      
+      if (peerConnection.connectionState === 'disconnected' || 
+          peerConnection.connectionState === 'failed') {
+        console.log('⚠️ WebRTC connection lost');
+        closePiPCamera();
+      }
+    };
+    
+    // Listen for offer from camera
+    videoSessionRef.child('offer').on('value', async (snapshot) => {
+      if (!snapshot.exists() || peerConnection.currentRemoteDescription) return;
+      
+      const offer = snapshot.val();
+      console.log('📩 Received offer from camera');
+      
+      try {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        
+        // Create answer
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        
+        // Send answer
+        await videoSessionRef.child('answer').set(peerConnection.localDescription.toJSON());
+        console.log('📤 Answer sent to camera');
+      } catch (error) {
+        console.error('❌ Error handling offer:', error);
+      }
+    });
+    
+    // Listen for ICE candidates from camera
+    videoSessionRef.child('cameraCandidates').on('child_added', async (snapshot) => {
+      const candidate = snapshot.val();
+      
+      if (peerConnection && candidate) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log('✅ ICE candidate added');
+        } catch (e) {
+          console.error('Error adding ICE candidate:', e);
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ WebRTC setup error:', error);
+  }
+}
+
+function closePiPCamera() {
+  console.log('📷 Closing PiP camera...');
+  
+  const pipCamera = document.getElementById('pip-camera');
+  const pipVideo = document.getElementById('pip-video');
+  
+  if (pipCamera) pipCamera.classList.add('hidden');
+  if (pipVideo) pipVideo.srcObject = null;
+  
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
+  }
+  
+  remoteStream = null;
+  isPiPActive = false;
+  
+  console.log('✅ PiP camera closed');
+}
+
+// ========= 4. CHECK & PLAY FIRST =========
 function checkAndPlayFirst() {
   console.log('🔍 Checking for songs to play...');
   
@@ -98,7 +242,7 @@ function checkAndPlayFirst() {
   });
 }
 
-// ========= 4. PLAY SONG =========
+// ========= 5. PLAY SONG =========
 function playSong(key, data) {
   console.log("🎵 Playing:", data.name);
   currentKey = key;
@@ -142,7 +286,7 @@ function playSong(key, data) {
   });
 }
 
-// ========= 5. ERROR HANDLER (3 DETIK) =========
+// ========= 6. ERROR HANDLER (3 DETIK) =========
 function handleVideoError() {
   queueRef.child(currentKey).once("value", snap => {
     const songName = snap.exists() ? snap.val().name : "Seseorang";
@@ -201,7 +345,7 @@ function showErrorMessage(name) {
   setTimeout(() => overlay.remove(), 3000);
 }
 
-// ========= 6. REALTIME LISTENER =========
+// ========= 7. REALTIME LISTENER =========
 queueRef.orderByChild("order").on("value", snap => {
   console.log('📊 Queue data updated:', snap.val());
   console.log('🎵 Current key:', currentKey);
@@ -233,7 +377,7 @@ queueRef.orderByChild("order").on("value", snap => {
   }
 });
 
-// ========= 7. NEXT & REMOVE =========
+// ========= 8. NEXT & REMOVE =========
 function removeCurrentAndPlayNext() {
   if (!currentKey) return;
   
@@ -258,7 +402,7 @@ function playNextSong() {
   });
 }
 
-// ========= 8. TIMER =========
+// ========= 9. TIMER =========
 function startCountdown() {
   clearInterval(countdownTimer);
   remainingTime = MAX_DURATION;
@@ -289,7 +433,7 @@ function clearAllTimers() {
   clearInterval(countdownTimer);
 }
 
-// ========= 9. HEALTH CHECK =========
+// ========= 10. HEALTH CHECK =========
 function checkPlayerHealth() {
   if (player && typeof player.getPlayerState === 'function') {
     const state = player.getPlayerState();
@@ -300,7 +444,7 @@ function checkPlayerHealth() {
   }
 }
 
-// ========= 10. RESET PLAYER =========
+// ========= 11. RESET PLAYER =========
 function resetPlayer() {
   console.log("🔄 Reset player");
   currentKey = null;
@@ -315,7 +459,7 @@ function resetPlayer() {
   document.getElementById("timer").innerText = "⏳ 10:00";
 }
 
-// ========= 11. RENDER QUEUE =========
+// ========= 12. RENDER QUEUE =========
 function renderQueue(data) {
   const list = document.getElementById("queue-list");
   
@@ -341,3 +485,17 @@ function renderQueue(data) {
     `).join('');
   }
 }
+
+// ========= 13. CLEANUP ON UNLOAD =========
+window.addEventListener('beforeunload', () => {
+  if (peerConnection) {
+    peerConnection.close();
+  }
+  
+  if (videoSessionRef) {
+    videoSessionRef.child('answer').remove();
+    videoSessionRef.child('displayCandidates').remove();
+  }
+});
+
+console.log('✅ Display.js with WebRTC receiver loaded');
