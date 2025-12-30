@@ -1,5 +1,5 @@
 /*************************************************
- * FORM.JS – WITH YOUTUBE EMBED VALIDATION
+ * FORM.JS – WITH YOUTUBE EMBED VALIDATION + EMOTE (FINAL)
  *************************************************/
 
 // ================= INIT ROOM SYSTEM =================
@@ -18,6 +18,8 @@ if (!RoomManager.initRoomSystem()) {
 
 // ================= FIREBASE DENGAN ROOM =================
 const queueRef = RoomManager.getQueueRef();
+const roomRef = RoomManager.getRoomRef();
+const emotesRef = roomRef.child('emotes');
 
 if (!queueRef) {
   console.error('❌ Queue reference not available');
@@ -26,6 +28,7 @@ if (!queueRef) {
 }
 
 console.log('✅ Room system initialized successfully');
+console.log('✅ Emotes ref:', emotesRef.toString());
 
 // ================= DEVICE ID =================
 function getDeviceId() {
@@ -40,6 +43,17 @@ function getDeviceId() {
 }
 
 const DEVICE_ID = getDeviceId();
+
+// ================= AUTO-FILL NAME FROM LOCALSTORAGE =================
+window.addEventListener('DOMContentLoaded', function() {
+  const savedName = localStorage.getItem('karaoke_user_name');
+  const nameInput = document.getElementById('name');
+  
+  if (savedName && nameInput) {
+    nameInput.value = savedName;
+    console.log('✅ Auto-filled name:', savedName);
+  }
+});
 
 // ================= UTIL =================
 function extractVideoId(url) {
@@ -93,7 +107,7 @@ function getNameFromDevice(deviceId) {
   });
 }
 
-// ================= 🆕 VALIDATE YOUTUBE EMBED =================
+// ================= VALIDATE YOUTUBE EMBED =================
 async function validateYouTubeEmbed(videoId) {
   try {
     console.log("🔍 Checking embed status for:", videoId);
@@ -117,7 +131,6 @@ async function validateYouTubeEmbed(videoId) {
     }
   } catch (error) {
     console.error("❌ Embed check failed:", error);
-    // Jika gagal cek, tetap allow
     return { 
       canEmbed: true, 
       reason: null 
@@ -149,7 +162,10 @@ async function submitSong() {
     return;
   }
 
-  // ✅ VALIDASI EMBED
+  // Save name to localStorage
+  localStorage.setItem('karaoke_user_name', name);
+
+  // Validasi embed
   const embedCheck = await validateYouTubeEmbed(videoId);
   
   if (!embedCheck.canEmbed) {
@@ -187,13 +203,87 @@ async function submitSong() {
         showAlert("❌ Gagal menambahkan lagu. Coba lagi!", "error");
       } else {
         showAlert(`✅ Berhasil! Lagu kamu ditambahkan ke antrean. Terima kasih ${name}! 🎉`, "success");
-        nameInput.value = "";
         linkInput.value = "";
-        nameInput.focus();
+        linkInput.focus();
       }
     });
   });
 }
+
+// ================= 🎭 SEND EMOTE (UPDATED - BETTER LOGGING) =================
+window.sendEmote = async function(emoji, emoteName) {
+  console.log('🎭 sendEmote called!');
+  console.log('Emoji:', emoji);
+  console.log('Emote Name:', emoteName);
+  
+  const nameInput = document.getElementById("name");
+  const name = nameInput.value.trim();
+  
+  // ✅ VALIDASI NAMA WAJIB DIISI
+  if (!name) {
+    showAlert("❌ Masukkan nama kamu terlebih dahulu untuk kirim emote!", "error");
+    nameInput.focus();
+    nameInput.style.borderColor = "#ef4444";
+    nameInput.style.animation = "shake 0.5s";
+    
+    setTimeout(() => {
+      nameInput.style.borderColor = "";
+      nameInput.style.animation = "";
+    }, 500);
+    
+    return;
+  }
+  
+  if (name.length < 2) {
+    showAlert("❌ Nama minimal 2 karakter!", "error");
+    nameInput.focus();
+    return;
+  }
+  
+  // Save name to localStorage
+  localStorage.setItem('karaoke_user_name', name);
+  
+  // Rate limiting - max 1 emote per 2 seconds
+  const lastEmoteTime = localStorage.getItem('last_emote_time');
+  const now = Date.now();
+  
+  if (lastEmoteTime && (now - parseInt(lastEmoteTime)) < 2000) {
+    showAlert('⏳ Tunggu 2 detik sebelum kirim emote lagi!', 'error');
+    return;
+  }
+  
+  console.log('✅ Validation passed, sending to Firebase...');
+  
+  try {
+    // Create emote data
+    const emoteData = {
+      name: name,
+      emote: emoji,
+      emoteName: emoteName,
+      timestamp: Date.now()
+    };
+    
+    console.log('📤 Emote data:', emoteData);
+    console.log('📍 Sending to:', emotesRef.toString());
+    
+    // Send to Firebase
+    const newEmoteRef = await emotesRef.push(emoteData);
+    
+    console.log('✅ Emote sent successfully!');
+    console.log('🔑 Emote key:', newEmoteRef.key);
+    
+    // Update last emote time
+    localStorage.setItem('last_emote_time', now);
+    
+    // Show success
+    showAlert(`✅ ${emoteName} "${emoji}" dari ${name} terkirim ke layar!`, 'success');
+    
+  } catch (error) {
+    console.error('❌ Failed to send emote:', error);
+    console.error('Error details:', error.message);
+    showAlert('❌ Gagal mengirim emote. Coba lagi!', 'error');
+  }
+};
 
 // ================= UPDATE STATUS =================
 queueRef.on("value", snap => {
@@ -229,6 +319,17 @@ queueRef.on("value", snap => {
   }
 });
 
+// ================= SHAKE ANIMATION (CSS IN JS) =================
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+`;
+document.head.appendChild(style);
+
 // ================= ENTER KEY =================
 document.getElementById("name").addEventListener("keypress", function(e) {
   if (e.key === "Enter") {
@@ -241,3 +342,5 @@ document.getElementById("youtube-link").addEventListener("keypress", function(e)
     submitSong();
   }
 });
+
+console.log('✅ Form.js with emote loaded (FINAL VERSION)');

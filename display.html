@@ -9,22 +9,25 @@
 <body>
 <!-- Tombol Logout -->
 <button id="logout-btn" class="display-logout-btn">
-  <span>🚪</span>
-  <span>Logout</span>
+<span>🚪</span>
+<span>Logout</span>
 </button>
 
 <!-- YouTube Player Container -->
 <div id="player-container">
-  <div id="player"></div>
-  
-  <!-- PiP Camera (Pojok Kanan Bawah) -->
-  <div id="pip-camera" class="pip-camera hidden">
-    <video id="pip-video" autoplay playsinline></video>
-    <div class="pip-label">
-      <span class="pip-dot"></span>
-      <span>LIVE</span>
-    </div>
-  </div>
+<div id="player"></div>
+
+<!-- ✨ EMOTE CONTAINER (PENTING!) -->
+<div id="emote-container" class="emote-container"></div>
+
+<!-- PiP Camera (Pojok Kanan Bawah) -->
+<div id="pip-camera" class="pip-camera hidden">
+<video id="pip-video" autoplay playsinline></video>
+<div class="pip-label">
+<span class="pip-dot"></span>
+<span>LIVE</span>
+</div>
+</div>
 </div>
 
 <div class="now-playing">
@@ -32,6 +35,7 @@
 <div class="now-playing-name" id="now">Menunggu lagu...</div>
 <div class="now-playing-time" id="timer">⏳ 10:00</div>
 </div>
+
 <div class="queue-container">
 <div class="queue-header">🎵 Antrean Selanjutnya</div>
 <div id="queue-list" class="empty">Belum ada antrean</div>
@@ -39,7 +43,6 @@
 
 <!-- Custom Modal -->
 <script src="js/custom-modal.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="js/firebase.js"></script>

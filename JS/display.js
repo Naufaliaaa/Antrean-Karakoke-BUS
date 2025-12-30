@@ -1,7 +1,7 @@
 /*************************************************
- * DISPLAY.JS – WITH ALTERNATING EMOTE ANIMATION
+ * DISPLAY.JS – WITH WEBRTC + EMOTE RUNNING (FIXED!)
  * ✅ Emote bergerak BOLAK-BALIK (Kanan→Kiri, Kiri→Kanan)
- * ✅ Seperti Live Streaming
+ * ✅ SIAPAPUN bisa kirim emote kapan saja!
  *************************************************/
 
 // ========= INIT ROOM SYSTEM =========
@@ -33,6 +33,7 @@ if (!queueRef) {
 }
 
 console.log('✅ Room ID:', roomId);
+console.log('✅ Emotes ref:', emotesRef.toString());
 
 // ========= CONFIG =========
 const configuration = {
@@ -59,7 +60,7 @@ let remoteStream = null;
 let isPiPActive = false;
 
 // Emote State
-let activeEmotes = [];
+let processedEmotes = new Set(); // Track emote yang sudah ditampilkan
 let emotePositions = [15, 30, 45, 60, 75]; // 5 Y positions (%)
 let nextEmotePosition = 0;
 let nextDirection = 'rtl'; // Alternate between 'rtl' and 'ltr'
@@ -80,7 +81,7 @@ window.startSystem = function() {
   console.log("🚀 System Started");
   checkAndPlayFirst();
   initWebRTCReceiver();
-  initEmoteListener();
+  initEmoteListener(); // ✅ PENTING!
   
   if (!watchdogInterval) {
     watchdogInterval = setInterval(checkPlayerHealth, 5000);
@@ -175,36 +176,59 @@ function closePiPCamera() {
   isPiPActive = false;
 }
 
-// ========= 4. 🎭 EMOTE LISTENER (ALTERNATING) =========
+// ========= 4. 🎭 EMOTE LISTENER (FIXED!) =========
 function initEmoteListener() {
   console.log('🎭 Initializing emote listener...');
   
-  // Listen untuk emote baru
-  emotesRef.orderByChild('timestamp').limitToLast(1).on('child_added', (snapshot) => {
-    const emote = snapshot.val();
+  const container = document.getElementById('emote-container');
+  if (!container) {
+    console.error('❌ Emote container not found!');
+    return;
+  }
+  
+  console.log('✅ Emote container found:', container);
+  
+  // ✅ Listen untuk semua emote baru yang ditambahkan
+  emotesRef.on('child_added', (snapshot) => {
+    const emoteKey = snapshot.key;
+    const emoteData = snapshot.val();
     
-    // Cek apakah sudah pernah ditampilkan
-    if (activeEmotes.includes(snapshot.key)) {
+    // Skip jika sudah pernah ditampilkan
+    if (processedEmotes.has(emoteKey)) {
+      console.log('⏭️ Emote already processed:', emoteKey);
       return;
     }
     
-    console.log('🎭 New emote received:', emote);
-    showEmoteAnimation(emote, snapshot.key);
+    console.log('🎭 NEW EMOTE RECEIVED:', emoteData);
+    
+    // Tampilkan emote
+    showEmoteAnimation(emoteData, emoteKey);
+    
+    // Tandai sebagai sudah diproses
+    processedEmotes.add(emoteKey);
+    
+    // Hapus dari Firebase setelah 12 detik
+    setTimeout(() => {
+      emotesRef.child(emoteKey).remove()
+        .then(() => console.log('🗑️ Emote removed from Firebase:', emoteKey))
+        .catch(err => console.error('❌ Error removing emote:', err));
+    }, 12000);
   });
   
-  console.log('✅ Emote listener active');
+  console.log('✅ Emote listener active!');
 }
 
 function showEmoteAnimation(emoteData, emoteKey) {
   const container = document.getElementById('emote-container');
   if (!container) {
-    console.error('❌ Emote container not found');
+    console.error('❌ Emote container not found!');
     return;
   }
   
   // Create emote element
   const emoteEl = document.createElement('div');
   emoteEl.className = 'floating-emote';
+  emoteEl.id = `emote-${emoteKey}`;
   
   // ✨ ALTERNATE DIRECTION (RTL ↔ LTR)
   const direction = nextDirection;
@@ -228,15 +252,13 @@ function showEmoteAnimation(emoteData, emoteKey) {
   `;
   
   container.appendChild(emoteEl);
-  activeEmotes.push(emoteKey);
   
-  console.log(`✅ Emote animation started (${direction.toUpperCase()}):`, emoteData.name);
+  console.log(`✅ Emote displayed (${direction.toUpperCase()}):`, emoteData.name, emoteData.emote);
   
   // Remove after 10s
   setTimeout(() => {
     emoteEl.remove();
-    const index = activeEmotes.indexOf(emoteKey);
-    if (index > -1) activeEmotes.splice(index, 1);
+    console.log('🗑️ Emote element removed:', emoteKey);
   }, 10000);
 }
 
@@ -428,4 +450,4 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
-console.log('✅ Display.js with alternating emote animation loaded');
+console.log('✅ Display.js with FIXED emote animation loaded');
