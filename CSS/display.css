@@ -1,4 +1,4 @@
-/* display.css - Complete with PiP */
+/* display.css - Complete with PiP + Emote Running Animation */
 
 * {
   margin: 0;
@@ -51,12 +51,126 @@ body {
   width: 100%;
   height: 55vh;
   background: #000;
+  overflow: hidden;
 }
 
 #player {
   width: 100%;
   height: 100%;
   background: #000;
+}
+
+/* ===== ✨ EMOTE CONTAINER (Running Animation) ===== */
+.emote-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  overflow: hidden;
+}
+
+/* ===== FLOATING EMOTE (KANAN → KIRI & KIRI → KANAN) ===== */
+.floating-emote {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 50px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  animation-duration: 10s;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+/* Direction: Right to Left (RTL) */
+.floating-emote.rtl {
+  right: -500px;
+  animation-name: slideRTL;
+}
+
+@keyframes slideRTL {
+  0% {
+    right: -500px;
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    right: 100%;
+    opacity: 0;
+  }
+}
+
+/* Direction: Left to Right (LTR) */
+.floating-emote.ltr {
+  left: -500px;
+  animation-name: slideLTR;
+}
+
+@keyframes slideLTR {
+  0% {
+    left: -500px;
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+/* Emote Emoji */
+.emote-emoji {
+  font-size: 40px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  animation: bounce 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-8px);
+  }
+}
+
+/* Emote Info (Nama + Label) */
+.emote-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emote-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.emote-label {
+  font-size: 12px;
+  color: #fbbf24;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 /* ===== PiP CAMERA (Pojok Kanan Bawah) ===== */
@@ -100,7 +214,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* Mirror effect */
+  transform: scaleX(-1);
 }
 
 .pip-label {
@@ -134,13 +248,29 @@ body {
   51%, 100% { opacity: 0.3; }
 }
 
-/* ===== Responsive PiP ===== */
+/* ===== Responsive PiP & Emote ===== */
 @media (max-width: 1024px) {
   .pip-camera {
     width: 220px;
     height: 125px;
     bottom: 15px;
     right: 15px;
+  }
+  
+  .floating-emote {
+    padding: 10px 16px;
+  }
+  
+  .emote-emoji {
+    font-size: 32px;
+  }
+  
+  .emote-name {
+    font-size: 16px;
+  }
+  
+  .emote-label {
+    font-size: 11px;
   }
 }
 
@@ -155,6 +285,22 @@ body {
   .pip-label {
     font-size: 10px;
     padding: 4px 8px;
+  }
+  
+  .floating-emote {
+    padding: 8px 14px;
+  }
+  
+  .emote-emoji {
+    font-size: 28px;
+  }
+  
+  .emote-name {
+    font-size: 14px;
+  }
+  
+  .emote-label {
+    font-size: 10px;
   }
 }
 

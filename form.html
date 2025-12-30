@@ -16,11 +16,13 @@
 
 <div id="alert" class="alert"></div>
 
+<!-- ===== NAMA (WAJIB) ===== -->
 <div class="form-group">
 <label for="name">Nama Kamu</label>
 <input type="text" id="name" placeholder="Masukkan nama...">
 </div>
 
+<!-- ===== LINK YOUTUBE ===== -->
 <div class="form-group">
 <label for="youtube-link">Link YouTube</label>
 <input type="url" id="youtube-link" placeholder="https://youtube.com/watch?v=...">
@@ -32,6 +34,26 @@
 <span>Tambah ke Antrean</span>
 </button>
 
+<!-- ===== DIVIDER ===== -->
+<div class="divider">
+<span>atau</span>
+</div>
+
+<!-- ===== EMOTE SECTION (CLEAN DESIGN) ===== -->
+<div class="emote-section">
+<h3>🎭 Kirim Emote ke Layar</h3>
+<p class="emote-description">Ekspresikan perasaan kamu yang akan muncul di layar karaoke!</p>
+<div class="emote-grid">
+<button class="emote-btn" onclick="sendEmote('👏', 'Tepuk Tangan')" title="Tepuk Tangan">👏</button>
+<button class="emote-btn" onclick="sendEmote('😍', 'Kagum')" title="Kagum">😍</button>
+<button class="emote-btn" onclick="sendEmote('👍', 'Jempol')" title="Jempol">👍</button>
+<button class="emote-btn" onclick="sendEmote('😂', 'Ketawa')" title="Ketawa">😂</button>
+<button class="emote-btn" onclick="sendEmote('❤️', 'Love')" title="Love">❤️</button>
+<button class="emote-btn" onclick="sendEmote('🔥', 'Mantap')" title="Mantap">🔥</button>
+</div>
+</div>
+
+<!-- ===== QUEUE STATUS ===== -->
 <div class="queue-status">
 Total antrean: <strong><span id="queue-count">0</span></strong>
 </div>
