@@ -1,5 +1,6 @@
 /*************************************************
- * BUS-MENU.JS - Bus Menu Logic (With Video Panel + Emote)
+ * BUS-MENU.JS - UPDATED WITH CAMERA LOGIN
+ * ✅ Camera Panel → Redirect to camera-login.html
  *************************************************/
 
 // ========= SECURITY CHECK =========
@@ -43,12 +44,14 @@ const buses = [
 // ========= SET BUS INFO =========
 function setBusInfo() {
   const bus = buses.find(b => b.id === roomId);
+  
   if (bus) {
     document.getElementById('bus-name').textContent = bus.name;
     document.getElementById('bus-icon').style.background = `linear-gradient(135deg, ${bus.color} 0%, ${adjustColor(bus.color, -20)} 100%)`;
   } else {
     document.getElementById('bus-name').textContent = roomId;
   }
+  
   document.getElementById('room-id').textContent = `Room ID: ${roomId}`;
 }
 
@@ -80,7 +83,6 @@ async function confirmExit(e) {
   if (result) {
     sessionStorage.removeItem(`room_token_${roomId}`);
     sessionStorage.removeItem(`room_pin_verified_${roomId}`);
-    
     console.log('🚪 User logged out, token removed');
     window.location.href = 'index.html';
   }
@@ -102,9 +104,10 @@ function goToEmote(e) {
   window.location.href = `emote.html?room=${roomId}`;
 }
 
+// ✅ UPDATED: Camera Panel → Redirect to camera-login.html
 function goToVideo(e) {
   e.preventDefault();
-  window.location.href = `video-panel.html?room=${roomId}`;
+  window.location.href = `camera-login.html?room=${roomId}`;
 }
 
 function goToAdmin(e) {
@@ -116,11 +119,15 @@ function goToAdmin(e) {
 document.getElementById('back-button').addEventListener('click', confirmExit);
 document.getElementById('display-btn').addEventListener('click', goToDisplay);
 document.getElementById('form-btn').addEventListener('click', goToForm);
-document.getElementById('emote-btn').addEventListener('click', goToEmote); // ✨ BARU
 document.getElementById('video-btn').addEventListener('click', goToVideo);
 document.getElementById('admin-btn').addEventListener('click', goToAdmin);
+
+const emoteBtn = document.getElementById('emote-btn');
+if (emoteBtn) {
+  emoteBtn.addEventListener('click', goToEmote);
+}
 
 // ========= INIT =========
 setBusInfo();
 
-console.log('✅ Bus-menu.js loaded');
+console.log('✅ Bus-menu.js loaded (WITH CAMERA LOGIN)');

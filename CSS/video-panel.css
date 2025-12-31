@@ -288,3 +288,43 @@ body {
     justify-content: center;
   }
 }
+
+/* ===== LOGOUT BUTTON STYLE ===== */
+.logout-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  font-size: 14px;
+  z-index: 100;
+}
+
+.logout-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+}
+
+.logout-button:active {
+  transform: translateY(0);
+}
+
+/* Responsive logout button */
+@media (max-width: 768px) {
+  .logout-button {
+    padding: 8px 16px;
+    font-size: 12px;
+    top: 15px;
+    right: 15px;
+  }
+}

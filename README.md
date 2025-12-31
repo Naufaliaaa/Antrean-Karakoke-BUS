@@ -1,191 +1,229 @@
-# 🎤 Karaoke Bus - Queue Management System
+# 🎤 Karaoke Bus System
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Status](https://img.shields.io/badge/status-production-brightgreen.svg)
+[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![WebRTC](https://img.shields.io/badge/WebRTC-333333?style=for-the-badge&logo=webrtc&logoColor=white)](https://webrtc.org/)
+[![YouTube API](https://img.shields.io/badge/YouTube_API-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://developers.google.com/youtube)
 
-Sistem manajemen antrean karaoke modern untuk bus pariwisata dengan fitur real-time synchronization, multi-room support, dan keamanan berlapis.
+**Sistem Antrean Karaoke Bus Real-time dengan WebRTC Video Streaming**
+
+Solusi lengkap untuk mengelola antrean karaoke di bus pariwisata dengan fitur streaming video real-time, emote interaktif, dan manajemen multi-bus yang powerful.
 
 ---
 
-## 📋 Daftar Isi
+## 📋 Table of Contents
 
-- [Fitur Utama](#-fitur-utama)
-- [Teknologi](#-teknologi)
-- [Struktur Proyek](#-struktur-proyek)
-- [Instalasi](#-instalasi)
-- [Konfigurasi](#-konfigurasi)
-- [Penggunaan](#-penggunaan)
-- [Keamanan](#-keamanan)
+- [Features](#-features)
+- [System Architecture](#-system-architecture)
+- [Tech Stack](#-tech-stack)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Usage Guide](#-usage-guide)
+- [Security](#-security)
 - [API Reference](#-api-reference)
+- [File Structure](#-file-structure)
 - [Troubleshooting](#-troubleshooting)
-- [Kontribusi](#-kontribusi)
-- [Lisensi](#-lisensi)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
-## ✨ Fitur Utama
+## ✨ Features
 
-### 🚌 Multi-Room Support
-- **7 Bus Pre-configured** (BUS-001 hingga BUS-007)
-- **Custom Room ID** untuk bus tambahan
-- **PIN Protection** 6 digit per room
-- **Isolasi data** antar room
+### 🎵 **Queue Management**
+- ✅ Real-time song queue synchronization
+- ✅ Drag & drop reordering (Admin)
+- ✅ Auto-play with 10-minute timer per song
+- ✅ YouTube video embed validation
+- ✅ Device-based request limiter (1 song per device)
+- ✅ Manual song addition by admin
+- ✅ Skip & delete song controls
 
-### 🎵 Queue Management
-- **Real-time synchronization** via Firebase
-- **Drag & drop** untuk reorder antrean
-- **Auto-play** lagu berikutnya
-- **Manual add** oleh admin
-- **Device tracking** untuk mencegah spam
-- **Order management** dengan numbering otomatis
+### 📺 **Display System**
+- ✅ Full-screen YouTube player
+- ✅ Now playing indicator with countdown
+- ✅ Queue preview (next songs)
+- ✅ Real-time emote animations (RTL ↔ LTR)
+- ✅ Picture-in-Picture (PiP) camera stream
+- ✅ Auto error handling for broken videos
 
-### 🎬 Display System
-- **YouTube Player** terintegrasi
-- **Auto-play** dengan error handling
-- **10 menit timer** per lagu
-- **Error overlay** 3 detik untuk link bermasalah
-- **Queue preview** untuk antrean selanjutnya
-- **Fullscreen support**
+### 🎥 **Camera Panel**
+- ✅ WebRTC live streaming to display
+- ✅ Front/back camera flip
+- ✅ Video recording with preview
+- ✅ iOS-compatible manual save
+- ✅ Picture-in-Picture integration
+- ✅ Connection status monitoring
 
-### 👥 User Experience
-- **QR Code generator** untuk akses cepat
-- **Custom modal** untuk semua notifikasi
-- **Responsive design** (mobile & desktop)
-- **Real-time queue status** di form
-- **Device-based** request limiting
+### 🎭 **Interactive Emotes**
+- ✅ Real-time emote sending to display
+- ✅ Smooth horizontal animations
+- ✅ Multiple emote types (👏 😍 👍 😂 ❤️ 🔥)
+- ✅ User name display with emote
+- ✅ Auto-cleanup after display
 
-### 🔐 Security Features
-- **Session-based authentication** untuk room, admin, dan display
-- **Token generation** untuk mencegah URL bypass
-- **Auto-logout** setelah timeout:
-  - Admin: 2 jam
-  - Display: 8 jam
-- **Password protection** untuk admin & display
-- **Firebase security rules**
+### 🏢 **Multi-Bus Support**
+- ✅ 7 pre-configured buses (expandable)
+- ✅ Custom room ID support
+- ✅ Isolated data per bus
+- ✅ Unique PIN protection per bus
+- ✅ QR code generation for passengers
 
-### 🎨 Modern UI/UX
-- **Gradient backgrounds**
-- **Smooth animations**
-- **Custom modal system** (no browser alerts)
-- **Hover effects**
-- **Loading states**
-- **Empty states**
+### 🔐 **Security Layers**
+- ✅ **PIN Authentication** - Bus access control
+- ✅ **Admin Password** - Queue management access
+- ✅ **Display Password** - Screen control access
+- ✅ **Camera Password** - Video panel access
+- ✅ Session management with timeout
+- ✅ Direct URL access prevention
+- ✅ Token-based authentication
+
+### 🎨 **User Experience**
+- ✅ Beautiful custom modal system (no browser alerts)
+- ✅ Responsive mobile-first design
+- ✅ Smooth animations & transitions
+- ✅ Real-time status indicators
+- ✅ Auto-save user names (localStorage)
+- ✅ Offline-ready architecture
 
 ---
 
-## 🛠️ Teknologi
+## 🏗️ System Architecture
 
-### Frontend
-- **HTML5** - Structure
-- **CSS3** - Styling dengan gradient & animations
-- **JavaScript (ES6+)** - Logic & interactivity
-- **YouTube IFrame API** - Video player
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  FIREBASE REALTIME DATABASE                 │
+│                                                             │
+│  karaoke/                                                   │
+│    └── room/                                                │
+│         ├── BUS-001/                                        │
+│         │    ├── Setting/                                   │
+│         │    │    ├── pin: 10****                           │
+│         │    │    ├── busName: "Bus 1"                      │
+│         │    │    ├── adminPassword: "ka************"       │
+│         │    │    ├── displayPassword: "di************"     │
+│         │    │    └── cameraPassword: "pa************"      │
+│         │    ├── queue/                                     │
+│         │    │    ├── {songId}/                             │
+│         │    │    │    ├── name: "John Doe"                 │
+│         │    │    │    ├── videoId: "dQw4w9WgXcQ"           │
+│         │    │    │    ├── order: 1                         │
+│         │    │    │    ├── deviceId: "DEV_..."             │
+│         │    │    │    └── createdAt: 1234567890            │
+│         │    ├── emotes/                                    │
+│         │    │    └── {emoteId}/                            │
+│         │    │         ├── name: "Alice"                    │
+│         │    │         ├── emote: "👏"                      │
+│         │    │         ├── emoteName: "Tepuk Tangan"        │
+│         │    │         └── timestamp: 1234567890            │
+│         │    └── videoSession/                              │
+│         │         ├── cameraStatus: "connected"             │
+│         │         ├── offer: {...}                          │
+│         │         ├── answer: {...}                         │
+│         │         ├── cameraCandidates: [...]               │
+│         │         └── displayCandidates: [...]              │
+│         ├── BUS-002/                                        │
+│         └── ...                                             │
+└─────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│   ADMIN PANEL   │  │  DISPLAY SCREEN │  │  PASSENGER FORM │
+│                 │  │                 │  │                 │
+│ • Queue Control │  │ • YouTube Player│  │ • Song Request  │
+│ • Drag & Drop   │  │ • PiP Camera    │  │ • Emote Sender  │
+│ • Manual Add    │  │ • Emote Display │  │ • Queue Status  │
+│ • Skip/Delete   │  │ • Real-time Sync│  │ • Device Limit  │
+│ • QR Generator  │  │ • Auto-play     │  │                 │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+         │                                          
+         ▼                                          
+┌─────────────────────────────────────────────────┐
+│              CAMERA PANEL (WebRTC)              │
+│                                                 │
+│ • Live Streaming to Display                     │
+│ • Front/Back Camera                             │
+│ • Recording (iOS Compatible)                    │
+│ • Connection Monitoring                         │
+└─────────────────────────────────────────────────┘
+```
 
-### Backend
-- **Firebase Realtime Database** - Data storage & sync
-- **Firebase Hosting** (optional) - Deployment
+---
 
-### Libraries
+## 🛠️ Tech Stack
+
+### **Frontend**
+- **HTML5** - Semantic markup
+- **CSS3** - Modern styling with animations
+- **Vanilla JavaScript** - No framework dependencies
+- **YouTube IFrame API** - Video player integration
+
+### **Backend & Database**
+- **Firebase Realtime Database** - Real-time data synchronization
+- **Firebase Hosting** (optional) - Static site hosting
+
+### **Communication**
+- **WebRTC** - Peer-to-peer video streaming
+- **STUN Servers** - NAT traversal (Google STUN)
+
+### **APIs & Libraries**
+- **YouTube Data API v3** - Video validation
 - **QR Server API** - QR code generation
-- **Custom Modal System** - Alert/confirm replacement
+- **MediaRecorder API** - Video recording
 
 ---
 
-## 📁 Struktur Proyek
+## 📦 Installation
 
-```
-karaoke-bus/
-├── index.html              # Landing page - pilih bus
-├── pin-login.html          # PIN verification untuk room
-├── bus-menu.html           # Menu utama room (display/form/admin)
-├── form.html               # Form request lagu untuk user
-├── display.html            # Display layar karaoke
-├── display-login.html      # Login display
-├── admin.html              # Admin panel
-├── admin-login.html        # Login admin
-│
-├── css/
-│   ├── index.css           # Style landing page
-│   ├── bus-menu.css        # Style menu bus
-│   ├── form.css            # Style form request
-│   ├── display.css         # Style display
-│   └── admin.css           # Style admin panel
-│
-├── js/
-│   ├── firebase.js         # Firebase config & init
-│   ├── room.js             # Room management system
-│   ├── custom-modal.js     # Custom modal/alert system
-│   ├── form.js             # Form logic
-│   ├── display.js          # Display player logic
-│   └── admin.js            # Admin panel logic
-│
-└── README.md               # Dokumentasi
-```
-
----
-
-## 🚀 Instalasi
-
-### Prerequisites
-- Web browser modern (Chrome, Firefox, Edge, Safari)
-- Web server (untuk development: Live Server, XAMPP, atau Python SimpleHTTPServer)
-- Akun Firebase (gratis)
-
-### Step 1: Clone Repository
+### **Prerequisites**
 ```bash
-git clone https://github.com/yourusername/karaoke-bus.git
-cd karaoke-bus
+# Required
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Internet connection
+- Firebase account (free tier works)
+
+# Optional
+- Node.js (for local development server)
+- Git (for version control)
 ```
 
-### Step 2: Setup Firebase
+### **Step 1: Clone Repository**
+```bash
+git clone https://github.com/yourusername/karaoke-bus-system.git
+cd karaoke-bus-system
+```
 
-1. Buat project baru di [Firebase Console](https://console.firebase.google.com/)
-2. Aktifkan **Realtime Database**
-3. Copy konfigurasi Firebase
-4. Paste ke `js/firebase.js`:
+### **Step 2: Firebase Setup**
 
+1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
+
+2. Enable **Realtime Database**
+   - Go to Realtime Database
+   - Click "Create Database"
+   - Start in **Test Mode** (or configure rules later)
+   - Choose region: **asia-southeast1** (Singapore)
+
+3. Get your Firebase config:
+   - Go to Project Settings > General
+   - Scroll to "Your apps" > Web app
+   - Copy the configuration object
+
+4. Update `js/firebase.js`:
 ```javascript
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  databaseURL: "YOUR_DATABASE_URL",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
   messagingSenderId: "YOUR_SENDER_ID",
   appId: "YOUR_APP_ID"
 };
 ```
 
-5. Setup Firebase Rules (lihat bagian [Konfigurasi](#-konfigurasi))
+### **Step 3: Configure Firebase Database Rules**
 
-### Step 3: Jalankan Project
-
-**Menggunakan Live Server (VSCode):**
-```bash
-# Install extension Live Server di VSCode
-# Klik kanan index.html → "Open with Live Server"
-```
-
-**Menggunakan Python:**
-```bash
-python -m http.server 8000
-# Buka http://localhost:8000
-```
-
-**Menggunakan Node.js:**
-```bash
-npx http-server -p 8000
-# Buka http://localhost:8000
-```
-
----
-
-## ⚙️ Konfigurasi
-
-### Firebase Realtime Database Rules
-
-Paste rules ini ke Firebase Console → Realtime Database → Rules:
+Go to Firebase Console > Realtime Database > Rules:
 
 ```json
 {
@@ -207,7 +245,23 @@ Paste rules ini ke Firebase Console → Realtime Database → Rules:
               "
             }
           },
+          "emotes": {
+            ".read": true,
+            ".write": true,
+            "$emoteId": {
+              ".validate": "
+                newData.hasChildren(['name','emote','timestamp']) &&
+                newData.child('name').isString() &&
+                newData.child('emote').isString() &&
+                newData.child('timestamp').isNumber()
+              "
+            }
+          },
           "Setting": {
+            ".read": true,
+            ".write": true
+          },
+          "videoSession": {
             ".read": true,
             ".write": true
           }
@@ -218,467 +272,609 @@ Paste rules ini ke Firebase Console → Realtime Database → Rules:
 }
 ```
 
-### Struktur Data Firebase
+### **Step 4: Initialize Database Structure**
 
-```
-karaoke/
-  room/
-    BUS-001/
-      Setting/
-        pin: 101010                    # PIN 6 digit (number)
-        busName: "Bus 1"               # Nama bus
-      queue/
-        -Nxxx123/
-          name: "John Doe"             # Nama penyanyi
-          videoId: "dQw4w9WgXcQ"       # YouTube video ID
-          order: 1                      # Urutan (number)
-          deviceId: "DEV_xxx"          # Device identifier
-          createdAt: 1234567890        # Timestamp
-```
+Manually add this data structure in Firebase Console:
 
-### Setup PIN untuk Bus
-
-Tambahkan PIN di Firebase Console:
-
-```
-karaoke/room/BUS-001/Setting/pin = 101010
-karaoke/room/BUS-002/Setting/pin = 202020
-karaoke/room/BUS-003/Setting/pin = 303030
-...
-```
-
-### Password Default
-
-**Admin Panel:**
-```javascript
-// admin-login.html line 99
-const ADMIN_PASSWORD = "karaokebushioo0001";
+```json
+{
+  "karaoke": {
+    "room": {
+      "BUS-001": {
+        "Setting": {
+          "pin": 101010,
+          "busName": "Bus 1",
+          "adminPassword": "ka****************",
+          "displayPassword": "di***********",
+          "cameraPassword": "pa*******************"
+        }
+      },
+      "BUS-002": {
+        "Setting": {
+          "pin": 202020,
+          "busName": "Bus 2",
+          "adminPassword": "ka****************",
+          "displayPassword": "di***********",
+          "cameraPassword": "pa*******************"
+        }
+      }
+    }
+  }
+}
 ```
 
-**Display:**
-```javascript
-// display-login.html line 72
-const DISPLAY_PASSWORD = "displaybus9999";
+### **Step 5: Run Local Server**
+
+**Option A: Using Python**
+```bash
+# Python 3
+python -m http.server 8000
+
+# Python 2
+python -m SimpleHTTPServer 8000
 ```
 
-⚠️ **SECURITY WARNING:** Ganti password ini di production!
+**Option B: Using Node.js**
+```bash
+npx http-server -p 8000
+```
+
+**Option C: Using VS Code Live Server**
+- Install "Live Server" extension
+- Right-click `index.html` > Open with Live Server
+
+### **Step 6: Access the System**
+
+Open browser and navigate to:
+```
+http://localhost:8000
+```
 
 ---
 
-## 📱 Penggunaan
+## ⚙️ Configuration
 
-### Untuk Penumpang (User)
+### **Bus Configuration** (`js/index.js`)
 
-1. **Akses Form Request**
-   - Scan QR code yang ditampilkan admin, ATAU
-   - Buka URL: `https://your-domain.com/form.html?room=BUS-001`
+```javascript
+const buses = [
+  { id: 'BUS-001', name: 'Bus 1', color: '#667eea' },
+  { id: 'BUS-002', name: 'Bus 2', color: '#f093fb' },
+  { id: 'BUS-003', name: 'Bus 3', color: '#4facfe' },
+  { id: 'BUS-004', name: 'Bus 4', color: '#43e97b' },
+  { id: 'BUS-005', name: 'Bus 5', color: '#fa709a' },
+  { id: 'BUS-006', name: 'Bus 6', color: '#feca57' },
+  { id: 'BUS-007', name: 'Bus 7', color: '#ff6b6b' },
+];
+```
 
-2. **Request Lagu**
-   - Masukkan nama Anda
-   - Paste link YouTube lagu
-   - Klik "Tambah ke Antrean"
+**To add more buses:**
+1. Add new object to `buses` array
+2. Create corresponding room in Firebase with Setting data
+3. Set unique PIN for the bus
 
-3. **Cek Status**
-   - Lihat posisi Anda di antrean
-   - Status real-time (sedang bernyanyi/menunggu)
+### **Password Configuration**
 
-### Untuk Driver/Operator (Admin)
+**Admin Panel** (`js/admin-login.js`):
+```javascript
+const ADMIN_PASSWORD = "ka****************";
+```
 
-1. **Login ke Room**
-   - Pilih bus dari homepage
-   - Masukkan PIN 6 digit
-   - Pilih "Panel Admin"
-   - Masukkan password admin
+**Display Screen** (`js/display-login.js`):
+```javascript
+const DISPLAY_PASSWORD = "di***********";
+```
 
-2. **Kelola Antrean**
-   - **Tambah manual:** Form di atas daftar antrean
-   - **Drag & drop:** Geser untuk ubah urutan
-   - **Skip:** Lewati lagu yang sedang diputar
-   - **Hapus:** Delete lagu dari antrean
-   - **Reset:** Hapus semua antrean
+**Camera Panel** (`js/camera-login.js`):
+```javascript
+const CAMERA_PASSWORD = "pa*******************";
+```
 
-3. **Monitoring**
-   - Lihat total antrean
-   - Cek lagu yang sedang diputar
-   - Share QR code untuk penumpang
+### **Session Timeout Configuration**
 
-### Untuk Display (Layar Karaoke)
+**Admin Session** (`js/admin-page.js`):
+```javascript
+const twoHours = 2 * 60 * 60 * 1000; // 2 hours
+```
 
-1. **Setup Display**
-   - Pilih bus dari homepage
-   - Masukkan PIN 6 digit
-   - Pilih "Layar Karaoke"
-   - Masukkan password display
+**Display Session** (`js/display-page.js`):
+```javascript
+const eightHours = 8 * 60 * 60 * 1000; // 8 hours
+```
 
-2. **Aktivasi**
-   - Klik "MULAI KARAOKE" pada overlay
-   - Player akan auto-play lagu pertama
+**Camera Session** (`js/video-panel-page.js`):
+```javascript
+const fourHours = 4 * 60 * 60 * 1000; // 4 hours
+```
 
-3. **Auto Management**
-   - Lagu otomatis berganti setelah selesai
-   - Timer 10 menit per lagu
-   - Error handling untuk link bermasalah
-   - Preview antrean selanjutnya
+### **Video Timer** (`js/display.js`):
+```javascript
+const MAX_DURATION = 600; // 10 minutes (600 seconds)
+```
 
 ---
 
-## 🔐 Keamanan
+## 📖 Usage Guide
 
-### Layer Keamanan
+### **For Passengers (Penumpang)**
 
-#### 1. Room Access Protection
-- **PIN 6 digit** wajib untuk masuk room
-- **Session token** disimpan di sessionStorage
-- **Token validation** di setiap halaman
-- Token **dihapus** saat logout atau timeout
+1. **Access the System**
+   - Scan QR code displayed in bus
+   - OR open URL and select your bus
+   - Enter 6-digit PIN (ask bus crew)
 
-#### 2. Admin Protection
-- **Password authentication**
-- **Session timeout** 2 jam
-- **Token-based** access control
-- Logout confirmation required
+2. **Request a Song**
+   - Click "Request Lagu" button
+   - Enter your name
+   - Paste YouTube video URL
+   - Click "Tambah ke Antrean"
+   - ✅ System validates video can be embedded
+   - ✅ One song per device at a time
 
-#### 3. Display Protection
-- **Password authentication**
-- **Session timeout** 8 jam
-- **Token-based** access control
-- Direct URL access blocked
+3. **Send Emotes**
+   - Enter your name (same as song request)
+   - Tap emote buttons (👏 😍 👍 😂 ❤️ 🔥)
+   - Your emote appears on main display
+   - Limit: 1 emote per 2 seconds
 
-#### 4. Anti-Spam
-- **Device ID tracking** (localStorage)
-- **One request per device** di antrean
-- Nama & link validation
+4. **Check Queue Status**
+   - See total queue count
+   - View your position
+   - Get notified when you're up next
 
-#### 5. Firebase Rules
-- Read/write rules per room
-- Data validation schema
-- No anonymous auth required
+### **For Admin**
 
-### Best Practices
+1. **Login**
+   - Access bus menu
+   - Click "Panel Admin"
+   - Enter admin password: `ka********` (masked for security)
 
-**Untuk Production:**
+2. **Manage Queue**
+   - **Drag & Drop** - Reorder songs by dragging
+   - **Add Manual** - Add song without device limit
+   - **Skip** - Skip currently playing song
+   - **Delete** - Remove song from queue
+   - **Reset All** - Clear entire queue
 
-1. **Ganti semua password default**
+3. **View Statistics**
+   - Total queue count (max 20 songs)
+   - Now playing info
+   - Device IDs for tracking
+
+4. **Generate QR Code**
+   - QR code auto-generated for passenger access
+   - Share URL displayed below QR
+
+### **For Display Operator**
+
+1. **Login**
+   - Click "Layar Karaoke"
+   - Enter display password: `di*******` (masked for security)
+
+2. **Activate System**
+   - Click "MULAI KARAOKE" overlay button
+   - YouTube player initializes
+   - Auto-plays first song in queue
+
+3. **Monitor Display**
+   - YouTube video plays full-screen (55% height)
+   - Queue list shows next songs (45% height)
+   - Emotes animate across screen (RTL ↔ LTR)
+   - PiP camera in bottom-right corner
+   - Countdown timer shows remaining time
+
+4. **Auto Features**
+   - Auto-skip after 10 minutes
+   - Auto-play next song
+   - Error handling for broken videos
+   - Connection status monitoring
+
+### **For Camera Operator**
+
+1. **Login**
+   - Click "Video Panel"
+   - Enter camera password: `pa*****************` (masked for security)
+
+2. **Start Camera**
+   - Click "Aktifkan Kamera"
+   - Allow browser camera permission
+   - Camera feed appears on display (PiP mode)
+
+3. **Camera Controls**
+   - **🔄 Balik Kamera** - Switch front/back camera
+   - **⏺️ Mulai Rekam** - Start recording
+   - **⏹️ Stop Rekam** - Stop and preview recording
+   - **⏹️ Stop Kamera** - Disconnect camera
+
+4. **Recording (iOS Compatible)**
+   - Records video locally
+   - Shows preview after recording
+   - iOS users: Long press video > Save Video
+   - Android: Auto-download button
+
+---
+
+## 🔐 Security
+
+### **Authentication Flow**
+
+```
+┌─────────────────────────────────────────────────┐
+│  LEVEL 1: PIN Authentication (Bus Access)      │
+│  • 6-digit numeric PIN per bus                 │
+│  • Session token stored in sessionStorage      │
+│  • Required for bus menu access                │
+└─────────────────────────────────────────────────┘
+                     ↓
+┌─────────────────────────────────────────────────┐
+│  LEVEL 2: Role-Based Passwords                 │
+│  ├─ Admin: ka************ (2h session)         │
+│  ├─ Display: di*********** (8h session)        │
+│  └─ Camera: pa******************* (4h session) │
+└─────────────────────────────────────────────────┘
+                     ↓
+┌─────────────────────────────────────────────────┐
+│  LEVEL 3: Token Validation                     │
+│  • Secure token generation with hash           │
+│  • Timestamp-based expiration                  │
+│  • Stored in sessionStorage (tab-specific)     │
+└─────────────────────────────────────────────────┘
+                     ↓
+┌─────────────────────────────────────────────────┐
+│  LEVEL 4: Direct URL Prevention                │
+│  • Auth check on page load                     │
+│  • Auto-redirect if unauthorized               │
+│  • Session cleanup on logout                   │
+└─────────────────────────────────────────────────┘
+```
+
+### **Default Credentials**
+
+> ⚠️ **IMPORTANT**: Change these passwords in production!
+
+| Role | Default Password | Location | Session |
+|------|-----------------|----------|---------|
+| **Bus PIN** | `10****` (BUS-001) | Firebase Setting | Until logout |
+| **Admin** | `ka****************` | `admin-login.js` | 2 hours |
+| **Display** | `di***********` | `display-login.js` | 8 hours |
+| **Camera** | `pa*******************` | `camera-login.js` | 4 hours |
+
+### **Security Best Practices**
+
+1. **Change Default Passwords**
    ```javascript
-   // admin-login.html
-   const ADMIN_PASSWORD = "your-strong-password-here";
+   // js/admin-login.js
+   const ADMIN_PASSWORD = "your_secure_password_here";
    
-   // display-login.html
-   const DISPLAY_PASSWORD = "another-strong-password";
+   // js/display-login.js
+   const DISPLAY_PASSWORD = "your_secure_password_here";
+   
+   // js/camera-login.js
+   const CAMERA_PASSWORD = "your_secure_password_here";
    ```
 
-2. **Setup environment variables**
-   - Jangan commit Firebase config ke Git
-   - Gunakan .env file
+2. **Secure Firebase Rules**
+   - Set proper read/write permissions
+   - Validate data structure
+   - Limit request rates
 
-3. **Enable HTTPS**
-   - Firebase Hosting otomatis HTTPS
-   - Atau gunakan SSL certificate
+3. **HTTPS Only**
+   - Deploy with HTTPS (required for camera access)
+   - WebRTC requires secure context
 
-4. **Perketat Firebase Rules**
-   - Tambahkan auth requirement
-   - Rate limiting untuk write operations
+4. **Regular Password Updates**
+   - Change passwords monthly
+   - Use strong passwords (12+ characters)
+   - Mix uppercase, lowercase, numbers, symbols
 
-5. **Monitor logs**
-   - Firebase Console → Usage
-   - Track suspicious activities
+### **Rate Limiting**
+
+```javascript
+// Emote: 1 per 2 seconds
+// Song Request: 1 per 10 seconds (per device)
+// Queue Actions: No simultaneous requests
+```
 
 ---
 
-## 📖 API Reference
+## 📚 API Reference
 
-### RoomManager (js/room.js)
+### **RoomManager** (`js/room.js`)
 
-**Core Functions:**
+#### `getRoomId()`
+Returns the current room ID from URL or localStorage.
 
 ```javascript
-// Get current room ID
 const roomId = RoomManager.getRoomId();
+// Returns: "BUS-001"
+```
 
-// Get Firebase room reference
+#### `getRoomRef()`
+Returns Firebase reference to current room.
+
+```javascript
 const roomRef = RoomManager.getRoomRef();
+// Returns: firebase.database.Reference
+```
 
-// Get queue reference
+#### `getQueueRef()`
+Returns Firebase reference to queue.
+
+```javascript
 const queueRef = RoomManager.getQueueRef();
+// Returns: firebase.database.Reference
+```
 
-// Initialize room system
-const success = RoomManager.initRoomSystem();
+#### `verifyRoomPassword(roomId, password)`
+Verifies room password against Firebase.
 
-// Verify room password (returns Promise)
-const isValid = await RoomManager.verifyRoomPassword(roomId, password);
+```javascript
+const isValid = await RoomManager.verifyRoomPassword('BUS-001', 'password');
+// Returns: boolean
+```
 
-// Generate QR code
+#### `generateRoomQR()`
+Generates QR code for room access.
+
+```javascript
 RoomManager.generateRoomQR();
-
-// Get room URL for specific page
-const url = RoomManager.getCurrentRoomUrl('form.html');
+// Displays QR code in designated element
 ```
 
-### Custom Modal (js/custom-modal.js)
+### **Custom Modal System** (`js/custom-modal.js`)
 
-**Alert Functions:**
-
-```javascript
-// Basic alert
-await customAlert("Your message");
-
-// Custom alert with options
-await customAlert("Message", {
-  title: "Custom Title",
-  icon: "🎉",
-  buttonText: "OK",
-  buttonClass: "custom-modal-btn-primary"
-});
-
-// Success alert (green)
-await customSuccess("Operation successful!");
-
-// Error alert (red)
-await customError("Something went wrong!");
-
-// Warning alert (yellow)
-await customWarning("Please be careful!");
-
-// Info alert (blue)
-await customInfo("Did you know?");
-```
-
-**Confirm Function:**
+#### `customAlert(message, options)`
+Shows custom alert dialog.
 
 ```javascript
-// Basic confirm
-const result = await customConfirm("Are you sure?");
-if (result) {
-  // User clicked "Ya"
-} else {
-  // User clicked "Batal"
-}
-
-// Custom confirm with options
-const result = await customConfirm("Delete this item?", {
-  title: "Confirm Delete",
-  icon: "🗑️",
-  confirmText: "Yes, Delete",
-  cancelText: "Cancel",
-  confirmClass: "custom-modal-btn-danger"
+await customAlert('Song added successfully!', {
+  title: 'Success',
+  icon: '✅',
+  buttonText: 'OK'
 });
 ```
 
-### Firebase Queue Structure
-
-**Add to Queue:**
+#### `customConfirm(message, options)`
+Shows custom confirmation dialog.
 
 ```javascript
-queueRef.push({
-  name: "Singer Name",
-  videoId: "YouTube_Video_ID",
-  order: 1,
-  deviceId: "DEVICE_ID",
-  createdAt: Date.now()
+const result = await customConfirm('Delete this song?', {
+  title: 'Confirm Delete',
+  icon: '🗑️',
+  confirmText: 'Yes, Delete',
+  cancelText: 'Cancel'
 });
+// Returns: boolean
 ```
 
-**Listen to Queue:**
+#### `customSuccess(message, title)`
+Shows success message.
 
 ```javascript
-queueRef.orderByChild("order").on("value", snapshot => {
-  snapshot.forEach(child => {
-    const data = child.val();
-    console.log(data.name, data.order);
-  });
-});
+await customSuccess('Song deleted successfully!', 'Success!');
 ```
 
-**Remove from Queue:**
+#### `customError(message, title)`
+Shows error message.
 
 ```javascript
-queueRef.child(songKey).remove();
+await customError('Failed to connect to database', 'Connection Error');
 ```
 
-**Update Order:**
+---
 
-```javascript
-queueRef.child(songKey).update({ order: newOrder });
+## 📁 File Structure
+
+```
+karaoke-bus-system/
+│
+├── index.html                 # Bus selection page
+├── pin-login.html             # PIN authentication
+├── bus-menu.html              # Main menu (4 options)
+├── form.html                  # Passenger song request
+├── emote.html                 # Emote sender (standalone)
+├── admin-login.html           # Admin authentication
+├── admin.html                 # Admin panel
+├── display-login.html         # Display authentication
+├── display.html               # Main karaoke display
+├── camera-login.html          # Camera authentication
+├── video-panel.html           # Camera panel
+├── camera-stream.html         # Camera stream (legacy)
+│
+├── css/
+│   ├── index.css              # Bus selection styles
+│   ├── pin-login.css          # PIN login styles
+│   ├── bus-menu.css           # Menu styles
+│   ├── form.css               # Request form styles
+│   ├── emote.css              # Emote page styles
+│   ├── admin-login.css        # Admin login styles
+│   ├── admin.css              # Admin panel styles
+│   ├── display-login.css      # Display login styles
+│   ├── display.css            # Display screen styles
+│   ├── camera-login.css       # Camera login styles
+│   └── video-panel.css        # Camera panel styles
+│
+├── js/
+│   ├── firebase.js            # Firebase configuration
+│   ├── room.js                # Room management (RoomManager)
+│   ├── custom-modal.js        # Custom modal system
+│   ├── index.js               # Bus selection logic
+│   ├── pin-login.js           # PIN authentication
+│   ├── bus-menu.js            # Menu navigation
+│   ├── form.js                # Song request logic
+│   ├── emote.js               # Emote logic (standalone page)
+│   ├── admin-login.js         # Admin authentication
+│   ├── admin-page.js          # Admin page init
+│   ├── admin.js               # Admin panel logic
+│   ├── display-login.js       # Display authentication
+│   ├── display-page.js        # Display page init
+│   ├── display.js             # Display logic (player + emotes)
+│   ├── camera-login.js        # Camera authentication
+│   ├── video-panel-page.js    # Camera page init
+│   ├── video-panel.js         # Camera panel logic
+│   └── camera-stream.js       # Camera stream (legacy)
+│
+└── README.md                  # This file
 ```
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Masalah Umum
+### **Common Issues**
 
-**1. Firebase Connection Failed**
-
-❌ Error: "Firebase SDK belum dimuat"
-
-✅ Solusi:
-- Pastikan urutan script benar di HTML
-- `firebase-app-compat.js` harus dimuat pertama
-- Cek koneksi internet
-- Verify Firebase config di `js/firebase.js`
-
----
-
-**2. PIN Tidak Valid**
-
-❌ Error: "PIN salah" padahal sudah benar
-
-✅ Solusi:
-- Cek di Firebase Console: `karaoke/room/BUS-XXX/Setting/pin`
-- PIN harus bertipe **number**, bukan string
-- Format: `101010` bukan `"101010"`
-- Test dengan Firebase Console langsung
-
----
-
-**3. Video Tidak Muncul**
-
-❌ Error: Video player hitam/tidak load
-
-✅ Solusi:
-- Pastikan link YouTube valid
-- Video tidak di-private/restricted
-- Cek YouTube API quota
-- Clear browser cache
-- Coba video lain untuk testing
-
----
-
-**4. Bypass PIN via URL**
-
-❌ Problem: Bisa akses bus-menu langsung
-
-✅ Solusi:
-- Pastikan sudah pakai file `pin-login.html` dan `bus-menu.html` yang terbaru
-- Cek sessionStorage di DevTools → Application → Session Storage
-- Pastikan ada key `room_token_BUS-XXX`
-
----
-
-**5. Modal Tidak Muncul**
-
-❌ Error: Masih pakai alert() browser
-
-✅ Solusi:
-- Pastikan `<script src="js/custom-modal.js"></script>` ada di HTML
-- Harus SEBELUM script yang pakai modal
-- Cek console untuk error JavaScript
-- Fungsi harus pakai `await` dan parent function harus `async`
-
----
-
-**6. Queue Tidak Update**
-
-❌ Problem: Tambah lagu tidak muncul di display
-
-✅ Solusi:
-- Cek Firebase Rules (read/write harus `true`)
-- Verify Firebase connection
-- Refresh display page
-- Cek console untuk listener errors
-- Pastikan order number unique
-
----
-
-**7. Drag & Drop Tidak Kerja**
-
-❌ Problem: Tidak bisa ubah urutan antrean
-
-✅ Solusi:
-- Pastikan pakai browser modern (Chrome/Firefox/Edge)
-- Cek `draggable="true"` di element
-- Mobile browser mungkin tidak support
-- Gunakan desktop untuk admin
-
----
-
-**8. Session Expired Terus**
-
-❌ Problem: Harus login berulang kali
-
-✅ Solusi:
-- Jangan clear browser cache/data saat sedang pakai
-- Cek timeout settings di code:
-  - Admin: 2 jam (bisa diubah di `admin.html`)
-  - Display: 8 jam (bisa diubah di `display.html`)
-- SessionStorage hilang saat tutup tab (by design)
-
----
-
-### Debug Mode
-
-Enable console logs untuk debugging:
-
-```javascript
-// Tambahkan di awal file JS
-const DEBUG = true;
-
-if (DEBUG) {
-  console.log('🐛 Debug info:', variable);
-}
+#### **1. Firebase Connection Failed**
+```
+Error: Unable to connect to Firebase
 ```
 
+**Solution:**
+- Check Firebase config in `js/firebase.js`
+- Verify database URL is correct
+- Check Firebase Database Rules
+- Ensure internet connection is stable
+
+#### **2. YouTube Video Won't Play**
+```
+Error: Video cannot be embedded
+```
+
+**Solution:**
+- Video owner disabled embedding
+- Try different video
+- System shows error message automatically
+- Admin can skip and play next song
+
+#### **3. Camera Not Working**
+```
+Error: Camera access denied
+```
+
+**Solution:**
+- Grant camera permission in browser
+- Check if HTTPS is enabled (required for camera)
+- Try different browser (Chrome recommended)
+- Check if camera is used by another app
+
+#### **4. WebRTC Connection Failed**
+```
+Error: Failed to establish connection
+```
+
+**Solution:**
+- Check firewall settings
+- Ensure STUN servers are accessible
+- Try refreshing both camera and display
+- Check network connectivity
+
+#### **5. Session Expired**
+```
+Error: Session timeout
+```
+
+**Solution:**
+- Login again with password
+- Sessions expire after:
+  - Admin: 2 hours
+  - Display: 8 hours
+  - Camera: 4 hours
+
+#### **6. Direct URL Access Denied**
+```
+Error: Unauthorized access
+```
+
+**Solution:**
+- This is intentional security feature
+- Always login through proper flow:
+  1. Select bus
+  2. Enter PIN
+  3. Choose function
+  4. Enter function password
+
+### **Browser Compatibility**
+
+| Browser | Queue | Display | Camera | Recording |
+|---------|-------|---------|--------|-----------|
+| Chrome 90+ | ✅ | ✅ | ✅ | ✅ |
+| Firefox 88+ | ✅ | ✅ | ✅ | ✅ |
+| Safari 14+ | ✅ | ✅ | ✅ | ⚠️ Manual save |
+| Edge 90+ | ✅ | ✅ | ✅ | ✅ |
+
+⚠️ iOS Safari requires manual video save (long press > Save Video)
+
+### **Performance Optimization**
+
+**If experiencing lag:**
+
+1. **Reduce queue size**
+   ```javascript
+   // Limit to 15 songs instead of 20
+   if (queueCount >= 15) {
+     showAlert('Queue is full!');
+   }
+   ```
+
+2. **Clear old emotes faster**
+   ```javascript
+   // In display.js, reduce timeout from 10s to 6s
+   setTimeout(() => {
+     emoteEl.remove();
+   }, 6000);
+   ```
+
+3. **Lower video quality**
+   ```javascript
+   // In display.js playerVars
+   playerVars: { 
+     autoplay: 1, 
+     controls: 1,
+     vq: 'medium' // Force medium quality
+   }
+   ```
+
 ---
 
-## 🤝 Kontribusi
+## 🤝 Contributing
 
-Kontribusi sangat diterima! Ikuti langkah berikut:
+We welcome contributions! Here's how you can help:
 
-### Setup Development
+### **Reporting Bugs**
+1. Check existing issues first
+2. Create detailed bug report with:
+   - Browser & version
+   - Steps to reproduce
+   - Expected vs actual behavior
+   - Console errors (if any)
 
-```bash
-# Fork repository
-git clone https://github.com/YOUR-USERNAME/karaoke-bus.git
-cd karaoke-bus
+### **Suggesting Features**
+1. Open an issue with [FEATURE] prefix
+2. Describe the feature in detail
+3. Explain use case and benefits
 
-# Create branch
-git checkout -b feature/amazing-feature
+### **Pull Requests**
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
 
-# Make changes
-# ...
-
-# Commit
-git commit -m "Add amazing feature"
-
-# Push
-git push origin feature/amazing-feature
-
-# Create Pull Request di GitHub
-```
-
-### Coding Standards
-
-- **Indentasi:** 2 spaces
-- **Naming:** camelCase untuk JS, kebab-case untuk CSS
-- **Comments:** Jelaskan logic kompleks
-- **Testing:** Test di Chrome, Firefox, Safari
-- **Responsive:** Mobile-first approach
-
-### Feature Requests
-
-Punya ide fitur baru? Buat issue di GitHub dengan label `enhancement`:
-
-**Format:**
-```
-Title: [FEATURE] Nama Fitur
-
-Deskripsi:
-- Masalah yang diselesaikan
-- Solusi yang diusulkan
-- Mockup (jika ada)
-
-Expected Behavior:
-- User story
-- Acceptance criteria
-```
+### **Code Style**
+- Use camelCase for variables and functions
+- Add comments for complex logic
+- Follow existing code structure
+- Test thoroughly before submitting
 
 ---
 
-## 📄 Lisensi
+## 📝 License
 
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+```
 MIT License
 
-Copyright (c) 2025 Karaoke Bus
+Copyright (c) 2025 Karaoke Bus System
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -697,52 +893,34 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
 
 ---
 
-## 📞 Kontak & Support
+## 👨‍💻 Author
 
-- **Email:** support@karaokebus.com
-- **GitHub Issues:** [Report Bug](https://github.com/yourusername/karaoke-bus/issues)
-- **Documentation:** [Wiki](https://github.com/yourusername/karaoke-bus/wiki)
-
----
-
-## 🎉 Credits
-
-Dibuat dengan ❤️ untuk komunitas karaoke bus Indonesia
-
-**Contributors:**
-- Your Name - Initial work
-
-**Special Thanks:**
-- Firebase Team - Real-time database
-- YouTube - IFrame API
-- Community testers
+**Your Name**
+- GitHub: [@yNaufaliaaa](https://github.com/Naufaliaaa)
+- Email: naufalzul45@gmail.com
+- Website: [hiookaraoke.com](https://iridescent-alfajores-f0baae.netlify.app/index.html)
 
 ---
 
-## 📊 Changelog
+## 🙏 Acknowledgments
 
-### v2.0.0 (2025-01-XX)
-- ✨ Added custom modal system
-- 🔐 Enhanced security (PIN + token-based auth)
-- 🎨 UI/UX improvements
-- 📱 Better responsive design
-- 🐛 Fixed multiple bugs
-
-### v1.0.0 (2024-XX-XX)
-- 🎉 Initial release
-- ✅ Basic queue management
-- ✅ Multi-room support
-- ✅ YouTube player integration
+- **Firebase** - Real-time database and hosting
+- **YouTube** - Video player API
+- **Google** - STUN servers for WebRTC
+- **QR Server** - QR code generation API
+- **Community** - Thanks to all contributors!
 
 ---
 
-<div align="center">
+## 📞 Support
 
-**⭐ Star this repo if you find it helpful!**
+Need help? Here's how to get support:
 
-Made with 🎤 for karaoke lovers
-
-</div>
+1. **Documentation** - Read this README thoroughly
+2. **Issues** - Check [GitHub Issues](https://github.com/yourusername/karaoke-bus-system/issues)
+3. **Discussions** - Join [GitHub Discussions](https://github.com/yourusername/karaoke-bus-system/discussions)
+4. **Email** - Contact: support@example.

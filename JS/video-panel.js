@@ -1,6 +1,7 @@
 /*************************************************
- * VIDEO-PANEL.JS - Admin Camera Panel with Recording
- * Stream ke Display + Record ke Device
+ * VIDEO-PANEL.JS - iOS Compatible Recording
+ * ✅ Show video preview after recording
+ * ✅ User can save manually (iOS friendly)
  *************************************************/
 
 // ========= GET ROOM ID =========
@@ -69,7 +70,6 @@ async function startCamera() {
     startCameraBtn.disabled = true;
     startCameraBtn.textContent = 'Memulai...';
     
-    // Get camera stream
     const constraints = {
       video: {
         facingMode: currentFacingMode,
@@ -82,10 +82,8 @@ async function startCamera() {
     localStream = await navigator.mediaDevices.getUserMedia(constraints);
     localVideo.srcObject = localStream;
     
-    // Hide overlay
     cameraOverlay.classList.add('hidden');
     
-    // Update UI
     isCameraActive = true;
     startCameraBtn.style.display = 'none';
     stopCameraBtn.style.display = 'inline-flex';
@@ -95,10 +93,7 @@ async function startCamera() {
     connectionStatus.textContent = 'Online';
     statusDot.classList.add('online');
     
-    // Setup WebRTC
     await setupWebRTC();
-    
-    // Update Firebase status
     await videoSessionRef.child('cameraStatus').set('connected');
     
     streamingStatus.textContent = 'Aktif (Tampil di Display)';
@@ -127,30 +122,23 @@ async function stopCamera() {
   
   if (!result) return;
   
-  // Stop recording if active
   if (isRecording) {
     stopRecording();
   }
   
-  // Stop camera stream
   if (localStream) {
     localStream.getTracks().forEach(track => track.stop());
     localStream = null;
   }
   
-  // Close peer connection
   if (peerConnection) {
     peerConnection.close();
     peerConnection = null;
   }
   
-  // Clear video
   localVideo.srcObject = null;
-  
-  // Show overlay
   cameraOverlay.classList.remove('hidden');
   
-  // Update UI
   isCameraActive = false;
   startCameraBtn.style.display = 'inline-flex';
   stopCameraBtn.style.display = 'none';
@@ -161,7 +149,6 @@ async function stopCamera() {
   statusDot.classList.remove('online');
   streamingStatus.textContent = 'Tidak Aktif';
   
-  // Update Firebase
   await videoSessionRef.child('cameraStatus').set('disconnected');
   await videoSessionRef.child('offer').remove();
   await videoSessionRef.child('cameraCandidates').remove();
@@ -174,38 +161,29 @@ async function setupWebRTC() {
   try {
     peerConnection = new RTCPeerConnection(configuration);
     
-    // Add tracks
     localStream.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStream);
     });
     
-    // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         videoSessionRef.child('cameraCandidates').push(event.candidate.toJSON());
       }
     };
     
-    // Create offer
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
-    
-    // Send offer
     await videoSessionRef.child('offer').set(peerConnection.localDescription.toJSON());
     
     console.log('📤 Offer sent to display');
     
-    // Listen for answer
     videoSessionRef.child('answer').on('value', async (snapshot) => {
       if (!snapshot.exists() || peerConnection.currentRemoteDescription) return;
       
       const answer = snapshot.val();
-      console.log('📩 Received answer from display');
-      
       await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
     });
     
-    // Listen for ICE candidates from display
     videoSessionRef.child('displayCandidates').on('child_added', async (snapshot) => {
       const candidate = snapshot.val();
       
@@ -228,12 +206,10 @@ async function flipCamera() {
   try {
     currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
     
-    // Stop current stream
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
     }
     
-    // Get new stream
     const constraints = {
       video: {
         facingMode: currentFacingMode,
@@ -246,7 +222,6 @@ async function flipCamera() {
     localStream = await navigator.mediaDevices.getUserMedia(constraints);
     localVideo.srcObject = localStream;
     
-    // Replace tracks in peer connection
     if (peerConnection) {
       const senders = peerConnection.getSenders();
       const videoSender = senders.find(s => s.track?.kind === 'video');
@@ -284,10 +259,11 @@ function startRecording() {
     recordedChunks = [];
     
     const options = {
-      mimeType: 'video/webm;codecs=vp9',
+      mimeType: 'video/webm;codecs=vp8,opus',
       videoBitsPerSecond: 2500000
     };
     
+    // iOS fallback
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
       options.mimeType = 'video/webm';
     }
@@ -301,19 +277,17 @@ function startRecording() {
     };
     
     mediaRecorder.onstop = () => {
-      saveRecording();
+      showVideoPreview();
     };
     
     mediaRecorder.start();
     isRecording = true;
     
-    // Update UI
     recordBtn.classList.add('recording');
     recordIcon.textContent = '⏹️';
     recordText.textContent = 'Stop Rekam';
     recordingStatusBar.style.display = 'flex';
     
-    // Start timer
     recordingStartTime = Date.now();
     recordingInterval = setInterval(updateRecordingTime, 1000);
     
@@ -321,7 +295,7 @@ function startRecording() {
     
   } catch (error) {
     console.error('❌ Recording error:', error);
-    customError('Gagal memulai rekaman');
+    customError('Gagal memulai rekaman: ' + error.message);
   }
 }
 
@@ -331,13 +305,11 @@ function stopRecording() {
     mediaRecorder.stop();
     isRecording = false;
     
-    // Update UI
     recordBtn.classList.remove('recording');
     recordIcon.textContent = '⏺️';
     recordText.textContent = 'Mulai Rekam';
     recordingStatusBar.style.display = 'none';
     
-    // Stop timer
     clearInterval(recordingInterval);
     recordingTime.textContent = '00:00';
     
@@ -354,27 +326,138 @@ function updateRecordingTime() {
   recordingTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// ========= SAVE RECORDING =========
-async function saveRecording() {
+// ========= 📱 iOS COMPATIBLE: SHOW VIDEO PREVIEW =========
+async function showVideoPreview() {
   const blob = new Blob(recordedChunks, { type: 'video/webm' });
-  const url = URL.createObjectURL(blob);
+  const videoUrl = URL.createObjectURL(blob);
   
-  const a = document.createElement('a');
-  a.style.display = 'none';
-  a.href = url;
-  a.download = `karaoke-${roomId}-${Date.now()}.webm`;
+  console.log('💾 Video blob created:', blob.size, 'bytes');
   
-  document.body.appendChild(a);
-  a.click();
+  // Detect iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 100);
+  // Create modal with video preview
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  `;
   
-  console.log('💾 Recording saved');
+  modal.innerHTML = `
+    <div style="background: white; border-radius: 20px; padding: 30px; max-width: 500px; width: 100%; text-align: center;">
+      <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">✅ Video Berhasil Direkam!</h2>
+      
+      <video 
+        id="preview-video" 
+        controls 
+        playsinline
+        style="
+          width: 100%; 
+          border-radius: 12px; 
+          margin-bottom: 20px;
+          max-height: 300px;
+        "
+      ></video>
+      
+      ${isIOS ? `
+        <div style="background: #fff3cd; border: 2px solid #fbbf24; border-radius: 12px; padding: 15px; margin-bottom: 20px; text-align: left;">
+          <p style="margin: 0 0 10px 0; color: #92400e; font-weight: bold; font-size: 14px;">📱 Cara Simpan di iPhone:</p>
+          <ol style="margin: 0; padding-left: 20px; color: #78350f; font-size: 13px; line-height: 1.6;">
+            <li>Tap tombol <strong>Play ▶️</strong> di atas</li>
+            <li><strong>Tahan</strong> video (long press)</li>
+            <li>Pilih <strong>"Save Video"</strong></li>
+            <li>Video akan tersimpan di <strong>Photos</strong></li>
+          </ol>
+        </div>
+      ` : `
+        <div style="background: #d4edda; border: 2px solid #c3e6cb; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #155724; font-size: 14px;">
+            💾 Video siap didownload!
+          </p>
+        </div>
+      `}
+      
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        ${!isIOS ? `
+          <button 
+            id="download-btn" 
+            style="
+              flex: 1;
+              padding: 15px;
+              background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+              color: white;
+              border: none;
+              border-radius: 12px;
+              font-weight: bold;
+              cursor: pointer;
+              font-size: 16px;
+            "
+          >
+            💾 Download
+          </button>
+        ` : ''}
+        
+        <button 
+          id="close-preview-btn" 
+          style="
+            flex: 1;
+            padding: 15px;
+            background: #f1f5f9;
+            color: #64748b;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+          "
+        >
+          Tutup
+        </button>
+      </div>
+    </div>
+  `;
   
-  await customSuccess('Video berhasil disimpan!', 'Rekaman Tersimpan');
+  document.body.appendChild(modal);
+  
+  // Set video source
+  const previewVideo = document.getElementById('preview-video');
+  previewVideo.src = videoUrl;
+  
+  // Download button (non-iOS)
+  const downloadBtn = document.getElementById('download-btn');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = videoUrl;
+      a.download = `karaoke-${roomId}-${Date.now()}.webm`;
+      a.click();
+      
+      customSuccess('Video berhasil didownload!', 'Download Selesai');
+    });
+  }
+  
+  // Close button
+  document.getElementById('close-preview-btn').addEventListener('click', () => {
+    URL.revokeObjectURL(videoUrl);
+    modal.remove();
+  });
+  
+  console.log('✅ Video preview displayed');
+  
+  // Auto play for easier saving on iOS
+  if (isIOS) {
+    previewVideo.play();
+  }
 }
 
 // ========= HANDLE BACK =========
@@ -417,4 +500,4 @@ window.addEventListener('beforeunload', async () => {
 // ========= START =========
 init();
 
-console.log('✅ Video-panel.js loaded');
+console.log('✅ Video-panel.js loaded (iOS Compatible)');

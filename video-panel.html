@@ -5,6 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Camera Panel - Karaoke Bus</title>
 <link rel="stylesheet" href="css/video-panel.css">
+<style>
+/* ✨ LOGOUT BUTTON STYLE - Add this to video-panel.css or inline here */
+.logout-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  font-size: 14px;
+  z-index: 100;
+}
+
+.logout-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+}
+
+.logout-button:active {
+  transform: translateY(0);
+}
+</style>
 </head>
 <body>
 <div class="container">
@@ -16,6 +47,12 @@
 </a>
 <h1>🎥 Camera Panel</h1>
 <p class="subtitle">Streaming ke Display Bus</p>
+
+<!-- ✨ LOGOUT BUTTON (NEW!) -->
+<button id="logout-btn" class="logout-button">
+<span>🚪</span>
+<span>Logout</span>
+</button>
 </div>
 
 <!-- Camera Preview -->
@@ -71,6 +108,17 @@
 <script src="js/firebase.js"></script>
 <script src="js/room.js"></script>
 <script src="js/custom-modal.js"></script>
+
+<!-- ✅ SECURITY SCRIPT MUST BE FIRST! -->
+<script src="js/video-panel-page.js"></script>
 <script src="js/video-panel.js"></script>
+
+<!-- ✅ SETUP LOGOUT BUTTON -->
+<script>
+// Event listener untuk logout button
+document.getElementById('logout-btn').addEventListener('click', function() {
+  logout(); // Function dari video-panel-page.js
+});
+</script>
 </body>
 </html>

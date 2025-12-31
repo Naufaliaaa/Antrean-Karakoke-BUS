@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Login Camera Panel - Karaoke Bus</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/camera-login.css">
+</head>
+<body>
+<div class="card">
+<h1>🎥 Camera Panel</h1>
+<p>Masukkan password untuk melanjutkan</p>
+<input type="password" id="password" placeholder="Password camera panel" autofocus>
+<button id="login-btn">Masuk</button>
+<div class="error" id="error">❌ Password salah</div>
+<a href="#" id="back-link" class="back-link">← Kembali ke Menu Bus</a>
+</div>
+
+<!-- Custom Modal -->
+<script src="js/custom-modal.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/room.js"></script>
+<script src="js/camera-login.js"></script>
+</body>
+</html>
