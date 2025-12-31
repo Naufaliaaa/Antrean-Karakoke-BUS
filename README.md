@@ -108,7 +108,7 @@ Solusi lengkap untuk mengelola antrean karaoke di bus pariwisata dengan fitur st
 │         │    │    │    ├── name: "John Doe"                 │
 │         │    │    │    ├── videoId: "dQw4w9WgXcQ"           │
 │         │    │    │    ├── order: 1                         │
-│         │    │    │    ├── deviceId: "DEV_..."             │
+│         │    │    │    ├── deviceId: "DEV_..."              │
 │         │    │    │    └── createdAt: 1234567890            │
 │         │    ├── emotes/                                    │
 │         │    │    └── {emoteId}/                            │
@@ -500,31 +500,31 @@ const MAX_DURATION = 600; // 10 minutes (600 seconds)
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  LEVEL 1: PIN Authentication (Bus Access)      │
-│  • 6-digit numeric PIN per bus                 │
-│  • Session token stored in sessionStorage      │
-│  • Required for bus menu access                │
+│  LEVEL 1: PIN Authentication (Bus Access)       │
+│  • 6-digit numeric PIN per bus                  │
+│  • Session token stored in sessionStorage       │
+│  • Required for bus menu access                 │
 └─────────────────────────────────────────────────┘
                      ↓
 ┌─────────────────────────────────────────────────┐
-│  LEVEL 2: Role-Based Passwords                 │
-│  ├─ Admin: ka************ (2h session)         │
-│  ├─ Display: di*********** (8h session)        │
-│  └─ Camera: pa******************* (4h session) │
+│  LEVEL 2: Role-Based Passwords                  │
+│  ├─ Admin: ka************ (2h session)          │
+│  ├─ Display: di*********** (8h session)         │
+│  └─ Camera: pa******************* (4h session)  │
 └─────────────────────────────────────────────────┘
                      ↓
 ┌─────────────────────────────────────────────────┐
-│  LEVEL 3: Token Validation                     │
-│  • Secure token generation with hash           │
-│  • Timestamp-based expiration                  │
-│  • Stored in sessionStorage (tab-specific)     │
+│  LEVEL 3: Token Validation                      │
+│  • Secure token generation with hash            │
+│  • Timestamp-based expiration                   │
+│  • Stored in sessionStorage (tab-specific)      │
 └─────────────────────────────────────────────────┘
                      ↓
 ┌─────────────────────────────────────────────────┐
-│  LEVEL 4: Direct URL Prevention                │
-│  • Auth check on page load                     │
-│  • Auto-redirect if unauthorized               │
-│  • Session cleanup on logout                   │
+│  LEVEL 4: Direct URL Prevention                 │
+│  • Auth check on page load                      │
+│  • Auto-redirect if unauthorized                │
+│  • Session cleanup on logout                    │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -544,13 +544,13 @@ const MAX_DURATION = 600; // 10 minutes (600 seconds)
 1. **Change Default Passwords**
    ```javascript
    // js/admin-login.js
-   const ADMIN_PASSWORD = "your_secure_password_here";
+   const ADMIN_PASSWORD = "**********";
    
    // js/display-login.js
-   const DISPLAY_PASSWORD = "your_secure_password_here";
+   const DISPLAY_PASSWORD = "***********";
    
    // js/camera-login.js
-   const CAMERA_PASSWORD = "your_secure_password_here";
+   const CAMERA_PASSWORD = "************";
    ```
 
 2. **Secure Firebase Rules**
@@ -900,7 +900,7 @@ SOFTWARE.
 ## 👨‍💻 Author
 
 **Your Name**
-- GitHub: [@yNaufaliaaa](https://github.com/Naufaliaaa)
+- GitHub: [@Naufaliaaa](https://github.com/Naufaliaaa)
 - Email: naufalzul45@gmail.com
 - Website: [hiookaraoke.com](https://iridescent-alfajores-f0baae.netlify.app/index.html)
 
