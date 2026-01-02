@@ -209,7 +209,7 @@ async function startCamera() {
   }
 }
 
-// ========= STOP CAMERA =========
+// ========= STOP CAMERA (FIXED - DEEP CLEANUP) =========
 async function stopCamera() {
   const result = await customConfirm(
     'Camera akan dimatikan dan tidak tampil di display lagi.',
@@ -223,7 +223,7 @@ async function stopCamera() {
   
   if (!result) return;
   
-  console.log('⏹️ Stopping camera...');
+  console.log('⏹️ Stopping camera with deep cleanup...');
   
   try {
     // Stop recording if active
@@ -240,10 +240,11 @@ async function stopCamera() {
       localStream = null;
     }
     
-    // Close peer connection
+    // Close peer connection FIRST
     if (peerConnection) {
       peerConnection.close();
       peerConnection = null;
+      console.log('🔌 Peer connection closed');
     }
     
     // Reset video
@@ -262,17 +263,26 @@ async function stopCamera() {
     statusDot.classList.remove('online');
     streamingStatus.textContent = 'Tidak Aktif';
     
-    // Update Firebase
+    // ✅ CRITICAL: Complete Firebase cleanup
     if (videoSessionRef) {
-      await videoSessionRef.child('cameraStatus').set('disconnected');
-      await videoSessionRef.child('offer').remove();
-      await videoSessionRef.child('cameraCandidates').remove();
+      console.log('🧹 Deep cleaning Firebase session...');
+      
+      // Remove ALL session data
+      await videoSessionRef.set(null);
+      
+      console.log('✅ Firebase session completely cleared');
     }
     
     console.log('✅ Camera stopped successfully');
     
+    await customSuccess(
+      'Kamera berhasil dimatikan. Anda bisa mengaktifkan kembali kapan saja.',
+      '✅ Kamera Dimatikan'
+    );
+    
   } catch (error) {
     console.error('❌ Error stopping camera:', error);
+    await customError('Terjadi kesalahan saat mematikan kamera.');
   }
 }
 
@@ -853,8 +863,179 @@ window.addEventListener('beforeunload', async () => {
   }
 });
 
-// Export for logout
+// ========= LOGOUT FUNCTION (SIMPLIFIED & ROBUST) =========
+async function logout() {
+  console.log('🚪 Logout function called');
+  
+  // Simple confirmation without customConfirm (in case it's not ready)
+  const confirmed = confirm('Anda akan keluar dari Camera Panel. Kamera akan dimatikan dan Anda perlu login kembali.\n\nLanjutkan?');
+  
+  if (!confirmed) {
+    console.log('❌ Logout cancelled by user');
+    return;
+  }
+  
+  console.log('✅ User confirmed logout, cleaning up...');
+  
+  try {
+    // Stop recording if active
+    if (isRecording) {
+      console.log('🛑 Stopping recording...');
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      isRecording = false;
+      clearInterval(recordingInterval);
+    }
+    
+    // Stop camera if active
+    if (isCameraActive || localStream) {
+      console.log('🛑 Stopping camera...');
+      
+      // Stop all media tracks
+      if (localStream) {
+        localStream.getTracks().forEach(track => {
+          track.stop();
+          console.log('🛑 Stopped track:', track.kind);
+        });
+        localStream = null;
+      }
+      
+      // Close peer connection
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+        console.log('🔌 Peer connection closed');
+      }
+      
+      // Reset video element
+      if (localVideo) {
+        localVideo.srcObject = null;
+      }
+    }
+    
+    // Clean up Firebase session completely
+    if (videoSessionRef) {
+      console.log('🧹 Cleaning Firebase session...');
+      try {
+        await videoSessionRef.set(null);
+        console.log('✅ Firebase session cleared');
+      } catch (fbError) {
+        console.error('⚠️ Firebase cleanup error:', fbError);
+        // Continue anyway
+      }
+    }
+    
+    // Clear authentication
+    console.log('🗑️ Clearing session storage...');
+    sessionStorage.removeItem(`camera_auth_${roomId}`);
+    sessionStorage.removeItem(`camera_token_${roomId}`);
+    sessionStorage.removeItem(`camera_login_time_${roomId}`);
+    sessionStorage.removeItem(`camera_last_activity_${roomId}`);
+    
+    console.log('✅ Logout cleanup complete');
+    
+    // Show success message (fallback to alert if customSuccess not ready)
+    if (typeof customSuccess === 'function') {
+      await customSuccess('Logout berhasil! Redirecting...', '👋 Sampai Jumpa!');
+    } else {
+      alert('✅ Logout berhasil!');
+    }
+    
+    // Redirect to login
+    console.log('🔄 Redirecting to login page...');
+    setTimeout(() => {
+      window.location.replace(`camera-login.html?room=${roomId}`);
+    }, 1000);
+    
+  } catch (error) {
+    console.error('❌ Logout error:', error);
+    
+    // Force logout anyway
+    alert('⚠️ Terjadi kesalahan saat logout, tapi akan tetap keluar.');
+    
+    // Force clear session
+    sessionStorage.clear();
+    
+    // Force redirect
+    setTimeout(() => {
+      window.location.replace(`camera-login.html?room=${roomId}`);
+    }, 500);
+  }
+}
+
+// Export functions globally (CRITICAL!)
+window.logout = logout;
 window.stopCamera = stopCamera;
+
+// ========= ENHANCED CLEANUP ON PAGE UNLOAD =========
+window.addEventListener('beforeunload', async () => {
+  console.log('🔄 Page unloading, performing deep cleanup...');
+  
+  // Stop recording
+  if (isRecording && mediaRecorder) {
+    mediaRecorder.stop();
+  }
+  
+  // Stop all media tracks
+  if (localStream) {
+    localStream.getTracks().forEach(track => {
+      track.stop();
+      console.log('🛑 Force stopped track:', track.kind);
+    });
+  }
+  
+  // Close peer connection
+  if (peerConnection) {
+    peerConnection.close();
+  }
+  
+  // Clean up Firebase session completely
+  if (videoSessionRef) {
+    try {
+      await videoSessionRef.child('cameraStatus').set('disconnected');
+      await videoSessionRef.child('offer').remove();
+      await videoSessionRef.child('answer').remove();
+      await videoSessionRef.child('cameraCandidates').remove();
+      await videoSessionRef.child('displayCandidates').remove();
+      console.log('✅ Firebase session cleaned');
+    } catch (e) {
+      console.error('❌ Firebase cleanup error:', e);
+    }
+  }
+});
+
+// ========= CLEANUP ON PAGE HIDE (Mobile Safari) =========
+window.addEventListener('pagehide', async () => {
+  console.log('📱 Page hidden, cleaning up for mobile...');
+  
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+  }
+  
+  if (peerConnection) {
+    peerConnection.close();
+  }
+  
+  if (videoSessionRef) {
+    try {
+      await videoSessionRef.set(null); // Clear entire session
+    } catch (e) {
+      console.error('Cleanup error:', e);
+    }
+  }
+});
+
+// ========= VISIBILITY CHANGE HANDLER =========
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    console.log('📄 Page hidden');
+    // Optional: pause camera when tab is hidden
+  } else {
+    console.log('📄 Page visible');
+    // Optional: resume camera when tab is visible
+  }
+});
 
 // ========= START INIT =========
 if (document.readyState === 'loading') {
@@ -863,4 +1044,4 @@ if (document.readyState === 'loading') {
   init();
 }
 
-console.log('✅ Video-panel.js (FIXED) loaded');
+console.log('✅ Video-panel.js (FIXED - Logout & Cleanup) loaded');

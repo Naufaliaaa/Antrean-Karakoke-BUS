@@ -85,24 +85,11 @@
 <!-- 4. Room Manager -->
 <script src="js/room.js"></script>
 
-<!-- 5. Security Check (MUST BE BEFORE video-panel.js!) -->
+<!-- 5. Security Check & Logout Setup (MUST BE BEFORE video-panel.js!) -->
 <script src="js/video-panel-page.js"></script>
 
 <!-- 6. Main Video Panel Logic (LAST!) -->
 <script src="js/video-panel.js"></script>
-
-<!-- 7. Setup Logout Button -->
-<script>
-// Event listener untuk logout button
-document.getElementById('logout-btn').addEventListener('click', function() {
-if (typeof logout === 'function') {
-logout();
-} else {
-console.error('Logout function not found');
-customError('Fungsi logout tidak tersedia. Silakan refresh halaman.');
-}
-});
-</script>
 
 </body>
 </html>
