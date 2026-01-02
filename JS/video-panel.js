@@ -1,38 +1,17 @@
 /*************************************************
- * VIDEO-PANEL.JS - FIXED VERSION
- * ✅ Camera activation fixed
- * ✅ Firebase ready check added
+ * VIDEO-PANEL.JS - ULTRA-FIXED & SIMPLIFIED
+ * ✅ Direct event binding
+ * ✅ No complex async init
  * ✅ Better error handling
  *************************************************/
 
-// ========= WAIT FOR FIREBASE & ROOM MANAGER =========
-let isSystemReady = false;
+console.log('🎥 VIDEO-PANEL.JS LOADING...');
+
+// ========= GLOBAL STATE =========
 let roomId = null;
 let videoSessionRef = null;
 
-// Wait for dependencies
-function waitForDependencies() {
-  return new Promise((resolve, reject) => {
-    let attempts = 0;
-    const maxAttempts = 50; // 5 seconds max
-    
-    const checkInterval = setInterval(() => {
-      attempts++;
-      
-      if (window.db && window.RoomManager) {
-        clearInterval(checkInterval);
-        console.log('✅ Dependencies ready');
-        resolve();
-      } else if (attempts >= maxAttempts) {
-        clearInterval(checkInterval);
-        console.error('❌ Dependencies timeout');
-        reject(new Error('Dependencies not loaded'));
-      }
-    }, 100);
-  });
-}
-
-// ========= WEBRTC CONFIG =========
+// WebRTC Config
 const configuration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -40,7 +19,7 @@ const configuration = {
   ]
 };
 
-// ========= STATE =========
+// Media State
 let localStream = null;
 let peerConnection = null;
 let mediaRecorder = null;
@@ -51,238 +30,275 @@ let recordingInterval = null;
 let currentFacingMode = 'user';
 let isCameraActive = false;
 
-// ========= ELEMENTS =========
-let localVideo, cameraOverlay, startCameraBtn, stopCameraBtn;
-let recordBtn, flipCameraBtn, backBtn, connectionStatus;
-let streamingStatus, recordingTime, recordingStatusBar;
-let statusDot, recordIcon, recordText;
+// ========= IMMEDIATE BUTTON BINDING =========
+// Bind as soon as DOM is ready, no waiting
+function bindButtons() {
+  console.log('🔧 Binding buttons...');
+  
+  const startBtn = document.getElementById('start-camera-btn');
+  const stopBtn = document.getElementById('stop-camera-btn');
+  const recordBtn = document.getElementById('record-btn');
+  const flipBtn = document.getElementById('flip-camera-btn');
+  const backBtn = document.getElementById('back-btn');
+  
+  if (startBtn) {
+    console.log('✅ Found start button');
+    
+    // Remove any existing listeners
+    const newStartBtn = startBtn.cloneNode(true);
+    startBtn.parentNode.replaceChild(newStartBtn, startBtn);
+    
+    // Add new listener
+    newStartBtn.addEventListener('click', async function(e) {
+      console.log('🎬 START BUTTON CLICKED!');
+      e.preventDefault();
+      
+      // Disable immediately
+      this.disabled = true;
+      this.innerHTML = '<span>⏳</span><span>Memulai...</span>';
+      
+      try {
+        await startCamera();
+      } catch (error) {
+        console.error('❌ Start camera failed:', error);
+        this.disabled = false;
+        this.innerHTML = '<span>📷</span><span>Aktifkan Kamera</span>';
+        alert('Gagal: ' + error.message);
+      }
+    });
+    
+    console.log('✅ Start button listener attached');
+  } else {
+    console.error('❌ Start button not found!');
+  }
+  
+  if (stopBtn) {
+    stopBtn.addEventListener('click', stopCamera);
+    console.log('✅ Stop button listener attached');
+  }
+  
+  if (recordBtn) {
+    recordBtn.addEventListener('click', toggleRecording);
+    console.log('✅ Record button listener attached');
+  }
+  
+  if (flipBtn) {
+    flipBtn.addEventListener('click', flipCamera);
+    console.log('✅ Flip button listener attached');
+  }
+  
+  if (backBtn) {
+    backBtn.addEventListener('click', handleBack);
+    console.log('✅ Back button listener attached');
+  }
+}
 
-// ========= INIT =========
-async function init() {
-  console.log('🎥 Initializing camera panel...');
+// ========= INITIALIZE =========
+async function initialize() {
+  console.log('🚀 Initializing system...');
   
   try {
-    // Wait for dependencies
-    await waitForDependencies();
-    
-    // Get elements
-    localVideo = document.getElementById('local-video');
-    cameraOverlay = document.getElementById('camera-overlay');
-    startCameraBtn = document.getElementById('start-camera-btn');
-    stopCameraBtn = document.getElementById('stop-camera-btn');
-    recordBtn = document.getElementById('record-btn');
-    flipCameraBtn = document.getElementById('flip-camera-btn');
-    backBtn = document.getElementById('back-btn');
-    connectionStatus = document.getElementById('connection-status');
-    streamingStatus = document.getElementById('streaming-status');
-    recordingTime = document.getElementById('recording-time');
-    recordingStatusBar = document.getElementById('recording-status-bar');
-    statusDot = document.getElementById('status-dot');
-    recordIcon = document.getElementById('record-icon');
-    recordText = document.getElementById('record-text');
-    
-    // Validate elements
-    if (!localVideo || !startCameraBtn) {
-      throw new Error('Required DOM elements not found');
+    // Wait for Firebase
+    let attempts = 0;
+    while (!window.db && attempts < 50) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
     }
     
-    // Get room ID
-    roomId = RoomManager.getRoomId();
+    if (!window.db) {
+      throw new Error('Firebase not loaded');
+    }
     
+    console.log('✅ Firebase ready');
+    
+    // Wait for RoomManager
+    attempts = 0;
+    while (!window.RoomManager && attempts < 50) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
+    }
+    
+    if (!window.RoomManager) {
+      throw new Error('RoomManager not loaded');
+    }
+    
+    console.log('✅ RoomManager ready');
+    
+    // Initialize room
+    if (!RoomManager.initRoomSystem()) {
+      throw new Error('Failed to init room system');
+    }
+    
+    roomId = RoomManager.getRoomId();
     if (!roomId) {
       throw new Error('Room ID not found');
     }
     
     console.log('✅ Room ID:', roomId);
     
-    // Initialize Firebase reference
-    videoSessionRef = db.ref(`karaoke/room/${roomId}/videoSession`);
-    console.log('✅ Video session ref initialized');
+    // Initialize Firebase ref
+    videoSessionRef = window.db.ref(`karaoke/room/${roomId}/videoSession`);
+    console.log('✅ Video session ref ready');
     
-    // Setup event listeners
-    startCameraBtn.addEventListener('click', startCamera);
-    stopCameraBtn.addEventListener('click', stopCamera);
-    recordBtn.addEventListener('click', toggleRecording);
-    flipCameraBtn.addEventListener('click', flipCamera);
-    backBtn.addEventListener('click', handleBack);
+    // Bind buttons
+    bindButtons();
     
-    isSystemReady = true;
-    console.log('✅ Camera panel ready');
+    console.log('✅ System ready!');
     
   } catch (error) {
     console.error('❌ Initialization error:', error);
-    await customError(
-      `Gagal menginisialisasi camera panel: ${error.message}`,
-      'Initialization Error'
-    );
+    alert('Error: ' + error.message + '\n\nSilakan refresh halaman.');
   }
 }
 
 // ========= START CAMERA =========
 async function startCamera() {
-  console.log('📹 Starting camera...');
+  console.log('📹 STARTING CAMERA...');
   
-  if (!isSystemReady) {
-    await customError('System belum siap. Silakan refresh halaman.', 'System Not Ready');
-    return;
-  }
+  const startBtn = document.getElementById('start-camera-btn');
+  const stopBtn = document.getElementById('stop-camera-btn');
+  const recordBtn = document.getElementById('record-btn');
+  const flipBtn = document.getElementById('flip-camera-btn');
+  const overlay = document.getElementById('camera-overlay');
+  const video = document.getElementById('local-video');
+  const statusText = document.getElementById('connection-status');
+  const statusDot = document.getElementById('status-dot');
+  const streamText = document.getElementById('streaming-status');
   
   try {
-    startCameraBtn.disabled = true;
-    startCameraBtn.textContent = 'Memulai...';
+    // Check if browser supports getUserMedia
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Browser tidak mendukung akses kamera. Gunakan browser modern (Chrome/Firefox).');
+    }
     
-    // Check camera permission
-    const permissions = await navigator.permissions.query({ name: 'camera' });
-    console.log('📷 Camera permission:', permissions.state);
+    console.log('📱 Requesting camera access...');
     
-    // Request camera access
+    // Request camera
     const constraints = {
       video: {
         facingMode: currentFacingMode,
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 }
       },
       audio: true
     };
     
-    console.log('📹 Requesting media with constraints:', constraints);
+    console.log('📹 Constraints:', constraints);
     
     localStream = await navigator.mediaDevices.getUserMedia(constraints);
     
-    console.log('✅ Camera stream obtained');
-    console.log('Video tracks:', localStream.getVideoTracks().length);
-    console.log('Audio tracks:', localStream.getAudioTracks().length);
+    console.log('✅ Camera stream obtained!');
+    console.log('📹 Video tracks:', localStream.getVideoTracks().length);
+    console.log('🎤 Audio tracks:', localStream.getAudioTracks().length);
     
     // Set video source
-    localVideo.srcObject = localStream;
+    video.srcObject = localStream;
+    
+    // Wait for video to load
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = () => {
+        console.log('✅ Video metadata loaded');
+        video.play().then(resolve).catch(reject);
+      };
+      
+      setTimeout(() => reject(new Error('Video load timeout')), 5000);
+    });
+    
+    console.log('✅ Video playing');
     
     // Hide overlay
-    cameraOverlay.classList.add('hidden');
+    if (overlay) overlay.classList.add('hidden');
     
     // Update UI
     isCameraActive = true;
-    startCameraBtn.style.display = 'none';
-    stopCameraBtn.style.display = 'inline-flex';
-    recordBtn.disabled = false;
-    flipCameraBtn.disabled = false;
     
-    connectionStatus.textContent = 'Online';
-    statusDot.classList.add('online');
+    if (startBtn) {
+      startBtn.style.display = 'none';
+    }
+    
+    if (stopBtn) {
+      stopBtn.style.display = 'inline-flex';
+    }
+    
+    if (recordBtn) {
+      recordBtn.disabled = false;
+    }
+    
+    if (flipBtn) {
+      flipBtn.disabled = false;
+    }
+    
+    if (statusText) {
+      statusText.textContent = 'Online';
+    }
+    
+    if (statusDot) {
+      statusDot.classList.add('online');
+    }
     
     console.log('📡 Setting up WebRTC...');
     
     // Setup WebRTC
     await setupWebRTC();
     
-    // Update Firebase status
-    await videoSessionRef.child('cameraStatus').set('connected');
+    // Update Firebase
+    if (videoSessionRef) {
+      await videoSessionRef.child('cameraStatus').set('connected');
+      console.log('✅ Firebase updated');
+    }
     
-    streamingStatus.textContent = 'Aktif (Tampil di Display)';
+    if (streamText) {
+      streamText.textContent = 'Aktif (Tampil di Display)';
+    }
     
-    console.log('✅ Camera started and streaming');
+    console.log('✅✅✅ CAMERA FULLY ACTIVE!');
     
-    await customSuccess(
-      'Kamera berhasil diaktifkan dan streaming ke display!',
-      '✅ Kamera Aktif'
-    );
+    // Show success (if customSuccess available)
+    if (typeof customSuccess === 'function') {
+      await customSuccess('Kamera berhasil diaktifkan!', '✅ Berhasil');
+    } else {
+      alert('✅ Kamera aktif dan streaming ke display!');
+    }
     
   } catch (error) {
     console.error('❌ Camera error:', error);
     
-    let errorMessage = 'Gagal mengakses kamera. ';
+    // Reset UI
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.innerHTML = '<span>📷</span><span>Aktifkan Kamera</span>';
+    }
+    
+    if (overlay) {
+      overlay.classList.remove('hidden');
+    }
+    
+    // Show error
+    let errorMsg = 'Gagal mengakses kamera.\n\n';
     
     if (error.name === 'NotAllowedError') {
-      errorMessage += 'Izin kamera ditolak. Silakan izinkan akses kamera di browser.';
+      errorMsg += '🚫 Izin kamera ditolak!\n\n';
+      errorMsg += 'Solusi:\n';
+      errorMsg += '1. Klik ikon gembok di address bar\n';
+      errorMsg += '2. Pilih "Izinkan" untuk Camera\n';
+      errorMsg += '3. Refresh halaman\n';
     } else if (error.name === 'NotFoundError') {
-      errorMessage += 'Kamera tidak ditemukan. Pastikan device memiliki kamera.';
+      errorMsg += '📷 Kamera tidak ditemukan!\n\n';
+      errorMsg += 'Pastikan device memiliki kamera.';
     } else if (error.name === 'NotReadableError') {
-      errorMessage += 'Kamera sedang digunakan aplikasi lain. Tutup aplikasi lain dan coba lagi.';
+      errorMsg += '⚠️ Kamera sedang digunakan!\n\n';
+      errorMsg += 'Tutup aplikasi lain yang menggunakan kamera.';
     } else {
-      errorMessage += error.message;
+      errorMsg += 'Error: ' + (error.message || 'Unknown error');
     }
     
-    await customError(errorMessage, 'Kamera Error');
-    
-    // Reset button
-    startCameraBtn.disabled = false;
-    startCameraBtn.textContent = 'Aktifkan Kamera';
-  }
-}
-
-// ========= STOP CAMERA (FIXED - DEEP CLEANUP) =========
-async function stopCamera() {
-  const result = await customConfirm(
-    'Camera akan dimatikan dan tidak tampil di display lagi.',
-    {
-      title: 'Stop Kamera?',
-      icon: '📷',
-      confirmText: 'Ya, Stop',
-      cancelText: 'Batal'
-    }
-  );
-  
-  if (!result) return;
-  
-  console.log('⏹️ Stopping camera with deep cleanup...');
-  
-  try {
-    // Stop recording if active
-    if (isRecording) {
-      stopRecording();
+    if (typeof customError === 'function') {
+      await customError(errorMsg, 'Camera Error');
+    } else {
+      alert(errorMsg);
     }
     
-    // Stop all tracks
-    if (localStream) {
-      localStream.getTracks().forEach(track => {
-        track.stop();
-        console.log('🛑 Stopped track:', track.kind);
-      });
-      localStream = null;
-    }
-    
-    // Close peer connection FIRST
-    if (peerConnection) {
-      peerConnection.close();
-      peerConnection = null;
-      console.log('🔌 Peer connection closed');
-    }
-    
-    // Reset video
-    localVideo.srcObject = null;
-    cameraOverlay.classList.remove('hidden');
-    
-    // Update UI
-    isCameraActive = false;
-    startCameraBtn.style.display = 'inline-flex';
-    startCameraBtn.disabled = false;
-    stopCameraBtn.style.display = 'none';
-    recordBtn.disabled = true;
-    flipCameraBtn.disabled = true;
-    
-    connectionStatus.textContent = 'Offline';
-    statusDot.classList.remove('online');
-    streamingStatus.textContent = 'Tidak Aktif';
-    
-    // ✅ CRITICAL: Complete Firebase cleanup
-    if (videoSessionRef) {
-      console.log('🧹 Deep cleaning Firebase session...');
-      
-      // Remove ALL session data
-      await videoSessionRef.set(null);
-      
-      console.log('✅ Firebase session completely cleared');
-    }
-    
-    console.log('✅ Camera stopped successfully');
-    
-    await customSuccess(
-      'Kamera berhasil dimatikan. Anda bisa mengaktifkan kembali kapan saja.',
-      '✅ Kamera Dimatikan'
-    );
-    
-  } catch (error) {
-    console.error('❌ Error stopping camera:', error);
-    await customError('Terjadi kesalahan saat mematikan kamera.');
+    throw error;
   }
 }
 
@@ -293,15 +309,15 @@ async function setupWebRTC() {
     
     peerConnection = new RTCPeerConnection(configuration);
     
-    // Add local stream tracks
+    // Add tracks
     localStream.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStream);
-      console.log('➕ Added track to peer:', track.kind);
+      console.log('➕ Added track:', track.kind);
     });
     
     // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
+      if (event.candidate && videoSessionRef) {
         videoSessionRef.child('cameraCandidates').push(event.candidate.toJSON());
         console.log('📤 Sent ICE candidate');
       }
@@ -310,11 +326,6 @@ async function setupWebRTC() {
     // Handle connection state
     peerConnection.onconnectionstatechange = () => {
       console.log('🔗 Connection state:', peerConnection.connectionState);
-      
-      if (peerConnection.connectionState === 'disconnected' || 
-          peerConnection.connectionState === 'failed') {
-        console.warn('⚠️ Connection lost');
-      }
     };
     
     // Create offer
@@ -323,40 +334,133 @@ async function setupWebRTC() {
     
     console.log('📤 Created offer');
     
-    // Send offer to Firebase
-    await videoSessionRef.child('offer').set(peerConnection.localDescription.toJSON());
-    
-    console.log('✅ Offer sent to display');
+    // Send offer
+    if (videoSessionRef) {
+      await videoSessionRef.child('offer').set(peerConnection.localDescription.toJSON());
+      console.log('✅ Offer sent');
+    }
     
     // Listen for answer
-    videoSessionRef.child('answer').on('value', async (snapshot) => {
-      if (!snapshot.exists() || peerConnection.currentRemoteDescription) return;
-      
-      const answer = snapshot.val();
-      console.log('📩 Received answer from display');
-      
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-    });
-    
-    // Listen for ICE candidates from display
-    videoSessionRef.child('displayCandidates').on('child_added', async (snapshot) => {
-      const candidate = snapshot.val();
-      
-      if (peerConnection && candidate) {
+    if (videoSessionRef) {
+      videoSessionRef.child('answer').on('value', async (snapshot) => {
+        if (!snapshot.exists() || !peerConnection || peerConnection.currentRemoteDescription) return;
+        
+        const answer = snapshot.val();
+        console.log('📩 Received answer');
+        
         try {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-          console.log('📥 Added display ICE candidate');
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
         } catch (e) {
-          console.error('Error adding ICE candidate:', e);
+          console.error('Error setting remote description:', e);
         }
-      }
-    });
+      });
+    }
+    
+    // Listen for ICE candidates
+    if (videoSessionRef) {
+      videoSessionRef.child('displayCandidates').on('child_added', async (snapshot) => {
+        const candidate = snapshot.val();
+        
+        if (peerConnection && candidate) {
+          try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            console.log('📥 Added ICE candidate');
+          } catch (e) {
+            console.error('Error adding ICE candidate:', e);
+          }
+        }
+      });
+    }
     
     console.log('✅ WebRTC setup complete');
     
   } catch (error) {
     console.error('❌ WebRTC error:', error);
     throw error;
+  }
+}
+
+// ========= STOP CAMERA =========
+async function stopCamera() {
+  console.log('⏹️ Stopping camera...');
+  
+  const confirmStop = typeof customConfirm === 'function' 
+    ? await customConfirm('Camera akan dimatikan. Lanjutkan?', {
+        title: 'Stop Kamera?',
+        confirmText: 'Ya',
+        cancelText: 'Batal'
+      })
+    : confirm('Stop kamera?');
+  
+  if (!confirmStop) return;
+  
+  try {
+    // Stop recording
+    if (isRecording) {
+      stopRecording();
+    }
+    
+    // Stop tracks
+    if (localStream) {
+      localStream.getTracks().forEach(track => {
+        track.stop();
+        console.log('🛑 Stopped:', track.kind);
+      });
+      localStream = null;
+    }
+    
+    // Close peer
+    if (peerConnection) {
+      peerConnection.close();
+      peerConnection = null;
+    }
+    
+    // Reset video
+    const video = document.getElementById('local-video');
+    if (video) video.srcObject = null;
+    
+    // Show overlay
+    const overlay = document.getElementById('camera-overlay');
+    if (overlay) overlay.classList.remove('hidden');
+    
+    // Update UI
+    isCameraActive = false;
+    
+    const startBtn = document.getElementById('start-camera-btn');
+    const stopBtn = document.getElementById('stop-camera-btn');
+    const recordBtn = document.getElementById('record-btn');
+    const flipBtn = document.getElementById('flip-camera-btn');
+    const statusText = document.getElementById('connection-status');
+    const statusDot = document.getElementById('status-dot');
+    const streamText = document.getElementById('streaming-status');
+    
+    if (startBtn) {
+      startBtn.style.display = 'inline-flex';
+      startBtn.disabled = false;
+      startBtn.innerHTML = '<span>📷</span><span>Aktifkan Kamera</span>';
+    }
+    
+    if (stopBtn) stopBtn.style.display = 'none';
+    if (recordBtn) recordBtn.disabled = true;
+    if (flipBtn) flipBtn.disabled = true;
+    if (statusText) statusText.textContent = 'Offline';
+    if (statusDot) statusDot.classList.remove('online');
+    if (streamText) streamText.textContent = 'Tidak Aktif';
+    
+    // Clean Firebase
+    if (videoSessionRef) {
+      await videoSessionRef.set(null);
+      console.log('✅ Firebase cleaned');
+    }
+    
+    console.log('✅ Camera stopped');
+    
+    if (typeof customSuccess === 'function') {
+      await customSuccess('Kamera dimatikan', 'Selesai');
+    }
+    
+  } catch (error) {
+    console.error('❌ Stop error:', error);
   }
 }
 
@@ -367,25 +471,22 @@ async function flipCamera() {
     
     currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
     
-    // Stop current stream
+    // Stop current
     if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+      localStream.getTracks().forEach(t => t.stop());
     }
     
     // Get new stream
-    const constraints = {
-      video: {
-        facingMode: currentFacingMode,
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: currentFacingMode },
       audio: true
-    };
+    });
     
-    localStream = await navigator.mediaDevices.getUserMedia(constraints);
-    localVideo.srcObject = localStream;
+    // Update video
+    const video = document.getElementById('local-video');
+    if (video) video.srcObject = localStream;
     
-    // Update peer connection tracks
+    // Update peer tracks
     if (peerConnection) {
       const senders = peerConnection.getSenders();
       const videoSender = senders.find(s => s.track?.kind === 'video');
@@ -394,7 +495,6 @@ async function flipCamera() {
       if (videoSender) {
         await videoSender.replaceTrack(localStream.getVideoTracks()[0]);
       }
-      
       if (audioSender) {
         await audioSender.replaceTrack(localStream.getAudioTracks()[0]);
       }
@@ -404,11 +504,11 @@ async function flipCamera() {
     
   } catch (error) {
     console.error('❌ Flip error:', error);
-    await customError('Gagal membalik kamera: ' + error.message);
+    alert('Gagal flip: ' + error.message);
   }
 }
 
-// ========= TOGGLE RECORDING =========
+// ========= RECORDING =========
 function toggleRecording() {
   if (isRecording) {
     stopRecording();
@@ -417,10 +517,9 @@ function toggleRecording() {
   }
 }
 
-// ========= START RECORDING =========
 function startRecording() {
   try {
-    console.log('🔴 Starting recording...');
+    console.log('🔴 Start recording...');
     
     recordedChunks = [];
     
@@ -429,31 +528,31 @@ function startRecording() {
       videoBitsPerSecond: 2500000
     };
     
-    // iOS fallback
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
       options.mimeType = 'video/webm';
     }
     
     mediaRecorder = new MediaRecorder(localStream, options);
     
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        recordedChunks.push(event.data);
-      }
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) recordedChunks.push(e.data);
     };
     
-    mediaRecorder.onstop = () => {
-      showVideoPreview();
-    };
+    mediaRecorder.onstop = saveRecording;
     
     mediaRecorder.start();
     isRecording = true;
     
     // Update UI
-    recordBtn.classList.add('recording');
-    recordIcon.textContent = '⏹️';
-    recordText.textContent = 'Stop Rekam';
-    recordingStatusBar.style.display = 'flex';
+    const btn = document.getElementById('record-btn');
+    const icon = document.getElementById('record-icon');
+    const text = document.getElementById('record-text');
+    const bar = document.getElementById('recording-status-bar');
+    
+    if (btn) btn.classList.add('recording');
+    if (icon) icon.textContent = '⏹️';
+    if (text) text.textContent = 'Stop Rekam';
+    if (bar) bar.style.display = 'flex';
     
     // Start timer
     recordingStartTime = Date.now();
@@ -463,381 +562,83 @@ function startRecording() {
     
   } catch (error) {
     console.error('❌ Recording error:', error);
-    customError('Gagal memulai rekaman: ' + error.message);
+    alert('Gagal rekam: ' + error.message);
   }
 }
 
-// ========= STOP RECORDING =========
 function stopRecording() {
   if (mediaRecorder && isRecording) {
-    console.log('⏹️ Stopping recording...');
+    console.log('⏹️ Stop recording...');
     
     mediaRecorder.stop();
     isRecording = false;
     
     // Update UI
-    recordBtn.classList.remove('recording');
-    recordIcon.textContent = '⏺️';
-    recordText.textContent = 'Mulai Rekam';
-    recordingStatusBar.style.display = 'none';
+    const btn = document.getElementById('record-btn');
+    const icon = document.getElementById('record-icon');
+    const text = document.getElementById('record-text');
+    const bar = document.getElementById('recording-status-bar');
+    const time = document.getElementById('recording-time');
     
-    // Stop timer
+    if (btn) btn.classList.remove('recording');
+    if (icon) icon.textContent = '⏺️';
+    if (text) text.textContent = 'Mulai Rekam';
+    if (bar) bar.style.display = 'none';
+    if (time) time.textContent = '00:00';
+    
     clearInterval(recordingInterval);
-    recordingTime.textContent = '00:00';
     
     console.log('✅ Recording stopped');
   }
 }
 
-// ========= UPDATE RECORDING TIME =========
 function updateRecordingTime() {
   const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
-  const minutes = Math.floor(elapsed / 60);
-  const seconds = elapsed % 60;
+  const min = Math.floor(elapsed / 60);
+  const sec = elapsed % 60;
   
-  recordingTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  const timeEl = document.getElementById('recording-time');
+  if (timeEl) {
+    timeEl.textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  }
 }
 
-// ========= SHOW VIDEO PREVIEW (IMPROVED FOR iOS) =========
-async function showVideoPreview() {
+function saveRecording() {
   const blob = new Blob(recordedChunks, { type: 'video/webm' });
-  const videoUrl = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(blob);
   
-  console.log('💾 Video blob created:', blob.size, 'bytes');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `karaoke-${roomId}-${Date.now()}.webm`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
   
-  // Detect iOS
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
   
-  // Create modal
-  const modal = document.createElement('div');
-  modal.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    overflow-y: auto;
-  `;
+  console.log('💾 Recording saved');
   
-  modal.innerHTML = `
-    <div style="background: white; border-radius: 20px; padding: 30px; max-width: 500px; width: 100%; text-align: center;">
-      <h2 style="margin: 0 0 15px 0; color: #333; font-size: 24px;">✅ Video Berhasil Direkam!</h2>
-      <p style="margin: 0 0 20px 0; color: #64748b; font-size: 14px;">
-        Durasi: <strong id="video-duration-text">Loading...</strong>
-      </p>
-      
-      <video 
-        id="preview-video" 
-        controls 
-        playsinline
-        controlsList="nodownload"
-        style="
-          width: 100%; 
-          border-radius: 12px; 
-          margin-bottom: 20px;
-          max-height: 300px;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        "
-      ></video>
-      
-      ${isIOS ? `
-        <!-- iOS Instructions -->
-        <div style="background: linear-gradient(135deg, #fff3cd 0%, #fef3c7 100%); border: 3px solid #fbbf24; border-radius: 15px; padding: 20px; margin-bottom: 20px; text-align: left; box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);">
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-            <span style="font-size: 32px;">📱</span>
-            <h3 style="margin: 0; color: #92400e; font-size: 18px; font-weight: bold;">Cara Simpan ke iPhone Photos:</h3>
-          </div>
-          
-          <div style="background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px;">
-            <ol style="margin: 0; padding-left: 20px; color: #78350f; font-size: 14px; line-height: 2;">
-              <li>Tap tombol <strong style="color: #92400e; background: #fef3c7; padding: 2px 8px; border-radius: 4px;">▶️ PUTAR VIDEO</strong> di bawah</li>
-              <li><strong style="color: #dc2626;">PENTING:</strong> Tahan jari pada <strong style="color: #92400e; text-decoration: underline;">AREA VIDEO yang SEDANG DIPUTAR</strong> (bukan area putih di sekitarnya)</li>
-              <li>Tunggu 1-2 detik, akan muncul menu popup iOS</li>
-              <li>Pilih <strong style="color: #92400e; background: #fef3c7; padding: 2px 8px; border-radius: 4px;">"Save Video"</strong> atau <strong>"Download Video"</strong></li>
-              <li>Video otomatis tersimpan di <strong style="color: #92400e;">📸 Photos App</strong></li>
-            </ol>
-          </div>
-          
-          <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-            <p style="margin: 0; color: #7f1d1d; font-size: 13px; line-height: 1.6;">
-              <strong>⚠️ PERHATIAN:</strong> Jangan long press di luar video player! Long press harus tepat di tengah video yang sedang diputar, bukan di area putih atau border.
-            </p>
-          </div>
-          
-          <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 8px;">
-            <p style="margin: 0; color: #1e3a8a; font-size: 13px; line-height: 1.6;">
-              <strong>💡 Tips:</strong> Kalau muncul menu "Copy Link" atau "Open in New Tab", berarti Anda long press di tempat yang salah. Coba lagi tepat di <strong>tengah-tengah video</strong>.
-            </p>
-          </div>
-        </div>
-        
-        <!-- Big Play Button with Visual Guide -->
-        <button 
-          id="ios-save-guide-btn"
-          style="
-            width: 100%;
-            padding: 20px;
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            border: none;
-            border-radius: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 18px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            position: relative;
-          "
-        >
-          <span style="font-size: 28px;">▶️</span>
-          <span>PUTAR VIDEO</span>
-        </button>
-        
-        <div style="background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
-          <p style="margin: 0; color: #166534; font-size: 13px; line-height: 1.6; text-align: center;">
-            <strong>👆 Setelah video diputar di atas</strong><br>
-            <strong style="font-size: 16px; color: #15803d;">TAHAN JARI DI TENGAH VIDEO</strong><br>
-            <span style="font-size: 12px; color: #16a34a;">Tunggu 1-2 detik untuk muncul menu "Save Video"</span>
-          </p>
-        </div>
-      ` : `
-        <!-- Android/Desktop Download -->
-        <div style="background: #d4edda; border: 2px solid #c3e6cb; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
-          <p style="margin: 0; color: #155724; font-size: 14px;">
-            💾 Klik tombol download di bawah untuk menyimpan video!
-          </p>
-        </div>
-        
-        <button 
-          id="download-btn" 
-          style="
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            color: white;
-            border: none;
-            border-radius: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 18px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 15px rgba(67, 233, 123, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-          "
-        >
-          <span style="font-size: 24px;">💾</span>
-          <span>Download Video</span>
-        </button>
-      `}
-      
-      <button 
-        id="close-preview-btn" 
-        style="
-          width: 100%;
-          padding: 15px;
-          background: #f1f5f9;
-          color: #64748b;
-          border: none;
-          border-radius: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          font-size: 16px;
-        "
-      >
-        ✖️ Tutup
-      </button>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  
-  // Get video element
-  const previewVideo = document.getElementById('preview-video');
-  previewVideo.src = videoUrl;
-  
-  // Show duration when loaded
-  previewVideo.addEventListener('loadedmetadata', () => {
-    const duration = previewVideo.duration;
-    const minutes = Math.floor(duration / 60);
-    const seconds = Math.floor(duration % 60);
-    document.getElementById('video-duration-text').textContent = 
-      `${minutes}:${String(seconds).padStart(2, '0')}`;
-  });
-  
-  // iOS Save Guide Button
-  const iosSaveGuideBtn = document.getElementById('ios-save-guide-btn');
-  if (iosSaveGuideBtn) {
-    iosSaveGuideBtn.addEventListener('click', async () => {
-      try {
-        // Play video
-        await previewVideo.play();
-        
-        // Show success message with animation
-        iosSaveGuideBtn.innerHTML = `
-          <span style="font-size: 28px;">✅</span>
-          <span>VIDEO DIPUTAR! Sekarang Long Press di TENGAH Video</span>
-        `;
-        iosSaveGuideBtn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
-        iosSaveGuideBtn.style.animation = 'pulse 1.5s infinite';
-        
-        // Add pulse animation
-        const style = document.createElement('style');
-        style.textContent = `
-          @keyframes pulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4); }
-            50% { transform: scale(1.03); box-shadow: 0 6px 25px rgba(34, 197, 94, 0.6); }
-          }
-        `;
-        document.head.appendChild(style);
-        
-        // Show visual indicator on video
-        const indicator = document.createElement('div');
-        indicator.style.cssText = `
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: rgba(34, 197, 94, 0.9);
-          color: white;
-          padding: 20px 30px;
-          border-radius: 15px;
-          font-size: 18px;
-          font-weight: bold;
-          pointer-events: none;
-          z-index: 1000;
-          animation: fadeInOut 3s forwards;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-        `;
-        indicator.innerHTML = `
-          <div style="text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 10px;">👇</div>
-            <div>TAHAN JARI DI SINI</div>
-            <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">1-2 detik untuk menu</div>
-          </div>
-        `;
-        
-        // Add fade animation
-        const fadeStyle = document.createElement('style');
-        fadeStyle.textContent = `
-          @keyframes fadeInOut {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-          }
-        `;
-        document.head.appendChild(fadeStyle);
-        
-        // Add indicator to video container
-        const videoContainer = previewVideo.parentElement;
-        videoContainer.style.position = 'relative';
-        videoContainer.appendChild(indicator);
-        
-        // Remove indicator after animation
-        setTimeout(() => {
-          indicator.remove();
-        }, 3000);
-        
-        // Reset button after 8 seconds
-        setTimeout(() => {
-          iosSaveGuideBtn.innerHTML = `
-            <span style="font-size: 28px;">▶️</span>
-            <span>PUTAR VIDEO</span>
-          `;
-          iosSaveGuideBtn.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
-          iosSaveGuideBtn.style.animation = 'none';
-        }, 8000);
-        
-      } catch (error) {
-        console.error('Play error:', error);
-        
-        // Show error message
-        iosSaveGuideBtn.innerHTML = `
-          <span style="font-size: 28px;">⚠️</span>
-          <span>Tap Video Player untuk Mulai</span>
-        `;
-        iosSaveGuideBtn.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
-        
-        setTimeout(() => {
-          iosSaveGuideBtn.innerHTML = `
-            <span style="font-size: 28px;">▶️</span>
-            <span>PUTAR VIDEO</span>
-          `;
-          iosSaveGuideBtn.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
-        }, 3000);
-      }
-    });
-  }
-  
-  // Download button (Android/Desktop)
-  const downloadBtn = document.getElementById('download-btn');
-  if (downloadBtn) {
-    downloadBtn.addEventListener('click', () => {
-      const a = document.createElement('a');
-      a.href = videoUrl;
-      a.download = `karaoke-${roomId}-${Date.now()}.webm`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      customSuccess('Video berhasil didownload!', 'Download Selesai');
-      
-      // Change button text
-      downloadBtn.innerHTML = `
-        <span style="font-size: 24px;">✅</span>
-        <span>Video Terdownload!</span>
-      `;
-      downloadBtn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
-      downloadBtn.disabled = true;
-    });
-  }
-  
-  // Close button
-  document.getElementById('close-preview-btn').addEventListener('click', () => {
-    URL.revokeObjectURL(videoUrl);
-    modal.remove();
-  });
-  
-  // Auto play for easier saving on iOS
-  if (isIOS) {
-    setTimeout(() => {
-      previewVideo.play().catch(err => {
-        console.log('Auto play blocked, user needs to interact first');
-      });
-    }, 500);
+  if (typeof customSuccess === 'function') {
+    customSuccess('Video tersimpan!', 'Berhasil');
+  } else {
+    alert('✅ Video tersimpan!');
   }
 }
 
-// ========= HANDLE BACK =========
+// ========= BACK =========
 async function handleBack(e) {
   e.preventDefault();
   
   if (isCameraActive || isRecording) {
-    const result = await customConfirm(
-      'Camera sedang aktif. Yakin ingin keluar?',
-      {
-        title: 'Keluar?',
-        icon: '⚠️',
-        confirmText: 'Ya, Keluar',
-        cancelText: 'Batal'
-      }
-    );
+    const confirmBack = typeof customConfirm === 'function'
+      ? await customConfirm('Camera aktif. Yakin keluar?', {
+          title: 'Keluar?',
+          confirmText: 'Ya',
+          cancelText: 'Batal'
+        })
+      : confirm('Camera aktif. Yakin keluar?');
     
-    if (!result) return;
+    if (!confirmBack) return;
     
     if (isRecording) stopRecording();
     if (isCameraActive) await stopCamera();
@@ -846,202 +647,84 @@ async function handleBack(e) {
   window.location.href = `bus-menu.html?room=${roomId}`;
 }
 
-// ========= CLEANUP =========
-window.addEventListener('beforeunload', async () => {
-  console.log('🔄 Page unloading, cleaning up...');
-  
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
-  }
-  
-  if (peerConnection) {
-    peerConnection.close();
-  }
-  
-  if (videoSessionRef) {
-    await videoSessionRef.child('cameraStatus').set('disconnected');
-  }
-});
-
-// ========= LOGOUT FUNCTION (SIMPLIFIED & ROBUST) =========
+// ========= LOGOUT =========
 async function logout() {
-  console.log('🚪 Logout function called');
+  console.log('🚪 Logout...');
   
-  // Simple confirmation without customConfirm (in case it's not ready)
-  const confirmed = confirm('Anda akan keluar dari Camera Panel. Kamera akan dimatikan dan Anda perlu login kembali.\n\nLanjutkan?');
+  const confirmLogout = typeof customConfirm === 'function'
+    ? await customConfirm('Logout dari Camera Panel?', {
+        title: 'Logout?',
+        confirmText: 'Ya',
+        cancelText: 'Batal'
+      })
+    : confirm('Logout?');
   
-  if (!confirmed) {
-    console.log('❌ Logout cancelled by user');
-    return;
-  }
-  
-  console.log('✅ User confirmed logout, cleaning up...');
+  if (!confirmLogout) return;
   
   try {
-    // Stop recording if active
-    if (isRecording) {
-      console.log('🛑 Stopping recording...');
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-      isRecording = false;
+    if (isRecording && mediaRecorder) {
+      mediaRecorder.stop();
       clearInterval(recordingInterval);
     }
     
-    // Stop camera if active
-    if (isCameraActive || localStream) {
-      console.log('🛑 Stopping camera...');
-      
-      // Stop all media tracks
-      if (localStream) {
-        localStream.getTracks().forEach(track => {
-          track.stop();
-          console.log('🛑 Stopped track:', track.kind);
-        });
-        localStream = null;
-      }
-      
-      // Close peer connection
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-        console.log('🔌 Peer connection closed');
-      }
-      
-      // Reset video element
-      if (localVideo) {
-        localVideo.srcObject = null;
-      }
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+      localStream = null;
     }
     
-    // Clean up Firebase session completely
+    if (peerConnection) {
+      peerConnection.close();
+      peerConnection = null;
+    }
+    
     if (videoSessionRef) {
-      console.log('🧹 Cleaning Firebase session...');
-      try {
-        await videoSessionRef.set(null);
-        console.log('✅ Firebase session cleared');
-      } catch (fbError) {
-        console.error('⚠️ Firebase cleanup error:', fbError);
-        // Continue anyway
-      }
+      await videoSessionRef.set(null);
     }
     
-    // Clear authentication
-    console.log('🗑️ Clearing session storage...');
-    sessionStorage.removeItem(`camera_auth_${roomId}`);
-    sessionStorage.removeItem(`camera_token_${roomId}`);
-    sessionStorage.removeItem(`camera_login_time_${roomId}`);
-    sessionStorage.removeItem(`camera_last_activity_${roomId}`);
+    sessionStorage.clear();
     
-    console.log('✅ Logout cleanup complete');
-    
-    // Show success message (fallback to alert if customSuccess not ready)
     if (typeof customSuccess === 'function') {
-      await customSuccess('Logout berhasil! Redirecting...', '👋 Sampai Jumpa!');
-    } else {
-      alert('✅ Logout berhasil!');
+      await customSuccess('Logout berhasil!', 'Bye!');
     }
     
-    // Redirect to login
-    console.log('🔄 Redirecting to login page...');
     setTimeout(() => {
       window.location.replace(`camera-login.html?room=${roomId}`);
     }, 1000);
     
   } catch (error) {
-    console.error('❌ Logout error:', error);
-    
-    // Force logout anyway
-    alert('⚠️ Terjadi kesalahan saat logout, tapi akan tetap keluar.');
-    
-    // Force clear session
+    console.error('Logout error:', error);
     sessionStorage.clear();
-    
-    // Force redirect
-    setTimeout(() => {
-      window.location.replace(`camera-login.html?room=${roomId}`);
-    }, 500);
+    window.location.replace(`camera-login.html?room=${roomId}`);
   }
 }
 
-// Export functions globally (CRITICAL!)
 window.logout = logout;
 window.stopCamera = stopCamera;
 
-// ========= ENHANCED CLEANUP ON PAGE UNLOAD =========
+// ========= CLEANUP =========
 window.addEventListener('beforeunload', async () => {
-  console.log('🔄 Page unloading, performing deep cleanup...');
+  console.log('🔄 Cleanup...');
   
-  // Stop recording
-  if (isRecording && mediaRecorder) {
-    mediaRecorder.stop();
-  }
-  
-  // Stop all media tracks
-  if (localStream) {
-    localStream.getTracks().forEach(track => {
-      track.stop();
-      console.log('🛑 Force stopped track:', track.kind);
-    });
-  }
-  
-  // Close peer connection
-  if (peerConnection) {
-    peerConnection.close();
-  }
-  
-  // Clean up Firebase session completely
-  if (videoSessionRef) {
-    try {
-      await videoSessionRef.child('cameraStatus').set('disconnected');
-      await videoSessionRef.child('offer').remove();
-      await videoSessionRef.child('answer').remove();
-      await videoSessionRef.child('cameraCandidates').remove();
-      await videoSessionRef.child('displayCandidates').remove();
-      console.log('✅ Firebase session cleaned');
-    } catch (e) {
-      console.error('❌ Firebase cleanup error:', e);
-    }
-  }
-});
-
-// ========= CLEANUP ON PAGE HIDE (Mobile Safari) =========
-window.addEventListener('pagehide', async () => {
-  console.log('📱 Page hidden, cleaning up for mobile...');
-  
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
-  }
-  
-  if (peerConnection) {
-    peerConnection.close();
-  }
+  if (isRecording && mediaRecorder) mediaRecorder.stop();
+  if (localStream) localStream.getTracks().forEach(t => t.stop());
+  if (peerConnection) peerConnection.close();
   
   if (videoSessionRef) {
     try {
-      await videoSessionRef.set(null); // Clear entire session
-    } catch (e) {
-      console.error('Cleanup error:', e);
-    }
+      await videoSessionRef.set(null);
+    } catch (e) {}
   }
 });
 
-// ========= VISIBILITY CHANGE HANDLER =========
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    console.log('📄 Page hidden');
-    // Optional: pause camera when tab is hidden
-  } else {
-    console.log('📄 Page visible');
-    // Optional: resume camera when tab is visible
-  }
-});
-
-// ========= START INIT =========
+// ========= AUTO-START =========
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('📄 DOM loaded');
+    setTimeout(initialize, 200);
+  });
 } else {
-  init();
+  console.log('📄 DOM already loaded');
+  setTimeout(initialize, 200);
 }
 
-console.log('✅ Video-panel.js (FIXED - Logout & Cleanup) loaded');
+console.log('✅ Video-panel.js loaded');
