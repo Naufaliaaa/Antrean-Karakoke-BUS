@@ -13,13 +13,14 @@
 <div class="container">
 <!-- Header -->
 <div class="header">
+<!-- ✅ BACK BUTTON (SIMPLE) -->
 <a href="#" id="back-btn" class="back-button">
 <span>←</span>
 <span>Kembali</span>
 </a>
 <h1>🎥 Camera Panel</h1>
 <p class="subtitle">Streaming ke Display Bus</p>
-<!-- ✨ LOGOUT BUTTON -->
+<!-- ✅ LOGOUT BUTTON (SIMPLE) -->
 <button id="logout-btn" class="logout-button">
 <span>🚪</span>
 <span>Logout</span>
@@ -33,6 +34,7 @@
 <div class="overlay-message">
 <span class="icon">📷</span>
 <p>Kamera Belum Aktif</p>
+<!-- ✅ START CAMERA BUTTON (SIMPLE) -->
 <button class="btn-primary" id="start-camera-btn">Aktifkan Kamera</button>
 </div>
 </div>
@@ -57,14 +59,17 @@
 </div>
 
 <div class="control-buttons">
+<!-- ✅ FLIP BUTTON (SIMPLE) -->
 <button class="control-btn secondary" id="flip-camera-btn" title="Balik Kamera" disabled>
 <span>🔄</span>
 <span>Balik Kamera</span>
 </button>
+<!-- ✅ RECORD BUTTON (SIMPLE) -->
 <button class="control-btn primary" id="record-btn" title="Mulai Rekam" disabled>
 <span id="record-icon">⏺️</span>
 <span id="record-text">Mulai Rekam</span>
 </button>
+<!-- ✅ STOP BUTTON (SIMPLE) -->
 <button class="control-btn danger" id="stop-camera-btn" title="Stop Kamera" style="display: none;">
 <span>⏹️</span>
 <span>Stop Kamera</span>
@@ -73,26 +78,175 @@
 </div>
 </div>
 
-<!-- ✅ CRITICAL: URUTAN SCRIPT HARUS BENAR! -->
+<!-- ✅ SCRIPTS IN CORRECT ORDER -->
 
-<!-- 1. Custom Modal (First!) -->
+<!-- 1. Custom Modal -->
 <script src="js/custom-modal.js"></script>
 
 <!-- 2. Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-<!-- 3. Firebase Init -->
+<!-- 3. Firebase Config -->
 <script src="js/firebase.js"></script>
 
 <!-- 4. Room Manager -->
 <script src="js/room.js"></script>
 
-<!-- 5. Security Check & Logout Setup (MUST BE BEFORE video-panel.js!) -->
+<!-- 5. Security Check -->
 <script src="js/video-panel-page.js"></script>
 
-<!-- 6. Main Video Panel Logic (LAST!) -->
+<!-- 6. Main Logic -->
 <script src="js/video-panel.js"></script>
+
+<!-- 7. Event Handlers (Simple & Clean) -->
+<script>
+console.log('🔧 Setting up event handlers...');
+
+// Wait for DOM to be ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupEventHandlers);
+} else {
+  setupEventHandlers();
+}
+
+function setupEventHandlers() {
+  console.log('📍 Setting up all button handlers...');
+  
+  // ========= START CAMERA BUTTON =========
+  const startBtn = document.getElementById('start-camera-btn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      console.log('🎬 START CAMERA BUTTON CLICKED!');
+      
+      if (typeof window.startCamera === 'function') {
+        console.log('✅ Calling window.startCamera()');
+        window.startCamera();
+      } else {
+        console.error('❌ window.startCamera not found!');
+        alert('⚠️ Fungsi kamera belum siap.\n\nSolusi:\n1. Refresh halaman (F5)\n2. Tunggu beberapa detik\n3. Coba lagi');
+      }
+    });
+    console.log('✅ Start camera button handler attached');
+  } else {
+    console.error('❌ Start camera button not found!');
+  }
+  
+  // ========= STOP CAMERA BUTTON =========
+  const stopBtn = document.getElementById('stop-camera-btn');
+  if (stopBtn) {
+    stopBtn.addEventListener('click', function() {
+      console.log('⏹️ STOP CAMERA BUTTON CLICKED!');
+      if (typeof window.stopCamera === 'function') {
+        window.stopCamera();
+      }
+    });
+    console.log('✅ Stop camera button handler attached');
+  }
+  
+  // ========= FLIP CAMERA BUTTON =========
+  const flipBtn = document.getElementById('flip-camera-btn');
+  if (flipBtn) {
+    flipBtn.addEventListener('click', function() {
+      console.log('🔄 FLIP CAMERA BUTTON CLICKED!');
+      if (typeof window.flipCamera === 'function') {
+        window.flipCamera();
+      }
+    });
+    console.log('✅ Flip camera button handler attached');
+  }
+  
+  // ========= RECORD BUTTON =========
+  const recordBtn = document.getElementById('record-btn');
+  if (recordBtn) {
+    recordBtn.addEventListener('click', function() {
+      console.log('⏺️ RECORD BUTTON CLICKED!');
+      if (typeof window.toggleRecording === 'function') {
+        window.toggleRecording();
+      }
+    });
+    console.log('✅ Record button handler attached');
+  }
+  
+  // ========= LOGOUT BUTTON =========
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('🚪 LOGOUT BUTTON CLICKED!');
+      if (typeof window.logout === 'function') {
+        window.logout();
+      }
+    });
+    console.log('✅ Logout button handler attached');
+  }
+  
+  // ========= BACK BUTTON =========
+  const backBtn = document.getElementById('back-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', async function(e) {
+      e.preventDefault();
+      console.log('◀️ BACK BUTTON CLICKED!');
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomId = urlParams.get('room');
+      
+      if (!roomId) {
+        console.error('❌ No room ID');
+        window.location.href = 'index.html';
+        return;
+      }
+      
+      console.log('📍 Room ID:', roomId);
+      
+      // Check if camera is active
+      const cameraActive = window.isCameraActive || false;
+      
+      if (cameraActive) {
+        let confirmBack;
+        if (typeof customConfirm === 'function') {
+          confirmBack = await customConfirm(
+            'Kamera sedang aktif. Yakin ingin keluar?\n\nKamera akan dimatikan otomatis.',
+            {
+              title: '⚠️ Keluar?',
+              confirmText: 'Ya, Keluar',
+              cancelText: 'Batal',
+              confirmClass: 'custom-modal-btn-danger'
+            }
+          );
+        } else {
+          confirmBack = confirm('Kamera aktif. Yakin keluar?');
+        }
+        
+        if (!confirmBack) {
+          console.log('❌ User cancelled back action');
+          return;
+        }
+        
+        // Stop camera before leaving
+        if (typeof window.stopCamera === 'function') {
+          try {
+            console.log('⏹️ Stopping camera before exit...');
+            // Just stop, don't wait for confirmation
+            if (window.localStream) {
+              window.localStream.getTracks().forEach(t => t.stop());
+            }
+          } catch (e) {
+            console.log('⚠️ Stop error (ignoring):', e);
+          }
+        }
+      }
+      
+      // Redirect to bus menu
+      console.log('🔄 Redirecting to bus menu...');
+      window.location.href = `bus-menu.html?room=${roomId}`;
+    });
+    console.log('✅ Back button handler attached');
+  }
+  
+  console.log('✅✅✅ All event handlers ready!');
+}
+</script>
 
 </body>
 </html>

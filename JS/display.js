@@ -2,6 +2,7 @@
  * DISPLAY.JS – WITH WEBRTC + EMOTE RUNNING (FIXED!)
  * ✅ Emote bergerak BOLAK-BALIK (Kanan→Kiri, Kiri→Kanan)
  * ✅ SIAPAPUN bisa kirim emote kapan saja!
+ * ✅ WebRTC PiP Camera working properly
  *************************************************/
 
 // ========= INIT ROOM SYSTEM =========
@@ -60,10 +61,10 @@ let remoteStream = null;
 let isPiPActive = false;
 
 // Emote State
-let processedEmotes = new Set(); // Track emote yang sudah ditampilkan
-let emotePositions = [15, 30, 45, 60, 75]; // 5 Y positions (%)
+let processedEmotes = new Set();
+let emotePositions = [15, 30, 45, 60, 75];
 let nextEmotePosition = 0;
-let nextDirection = 'rtl'; // Alternate between 'rtl' and 'ltr'
+let nextDirection = 'rtl';
 
 // ========= 1. OVERLAY =========
 document.body.insertAdjacentHTML('afterbegin', `
@@ -81,7 +82,7 @@ window.startSystem = function() {
   console.log("🚀 System Started");
   checkAndPlayFirst();
   initWebRTCReceiver();
-  initEmoteListener(); // ✅ PENTING!
+  initEmoteListener();
   
   if (!watchdogInterval) {
     watchdogInterval = setInterval(checkPlayerHealth, 5000);
@@ -98,16 +99,26 @@ window.onYouTubeIframeAPIReady = function() {
   isPlayerReady = true;
 }
 
-// ========= 3. WEBRTC =========
+// ========= 3. WEBRTC (FIXED VERSION) =========
 function initWebRTCReceiver() {
   console.log('📹 Initializing WebRTC receiver...');
+  
+  if (!roomId) {
+    console.error('❌ No room ID for WebRTC');
+    return;
+  }
+  
   videoSessionRef = db.ref(`karaoke/room/${roomId}/videoSession`);
   
   videoSessionRef.child('cameraStatus').on('value', (snapshot) => {
     const status = snapshot.val();
+    console.log('📹 Camera status:', status);
+    
     if (status === 'connected') {
+      console.log('✅ Camera connected, setting up WebRTC...');
       setupWebRTCConnection();
     } else if (status === 'disconnected') {
+      console.log('📴 Camera disconnected, closing PiP...');
       closePiPCamera();
     }
   });
@@ -115,10 +126,22 @@ function initWebRTCReceiver() {
 
 async function setupWebRTCConnection() {
   try {
+    console.log('🔗 Setting up WebRTC connection...');
+    
+    // Close existing connection
+    if (peerConnection) {
+      peerConnection.close();
+      peerConnection = null;
+    }
+    
+    // Create new peer connection
     peerConnection = new RTCPeerConnection(configuration);
     
+    // Handle incoming track
     peerConnection.ontrack = (event) => {
+      console.log('🎥 Received remote track:', event.track.kind);
       remoteStream = event.streams[0];
+      
       const pipVideo = document.getElementById('pip-video');
       const pipCamera = document.getElementById('pip-camera');
       
@@ -126,57 +149,99 @@ async function setupWebRTCConnection() {
         pipVideo.srcObject = remoteStream;
         pipCamera.classList.remove('hidden');
         isPiPActive = true;
+        console.log('✅ PiP camera active');
       }
     };
     
+    // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
+      if (event.candidate && videoSessionRef) {
         videoSessionRef.child('displayCandidates').push(event.candidate.toJSON());
       }
     };
     
+    // Handle connection state changes
     peerConnection.onconnectionstatechange = () => {
+      console.log('Connection state:', peerConnection.connectionState);
+      
       if (peerConnection.connectionState === 'disconnected' || 
           peerConnection.connectionState === 'failed') {
+        console.warn('⚠️ WebRTC connection lost');
         closePiPCamera();
       }
     };
     
+    // Listen for offer from camera
     videoSessionRef.child('offer').on('value', async (snapshot) => {
-      if (!snapshot.exists() || peerConnection.currentRemoteDescription) return;
+      if (!snapshot.exists()) {
+        console.log('⏳ Waiting for camera offer...');
+        return;
+      }
+      
+      if (peerConnection.currentRemoteDescription) {
+        console.log('⏭️ Already have remote description');
+        return;
+      }
       
       const offer = snapshot.val();
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-      await videoSessionRef.child('answer').set(peerConnection.localDescription.toJSON());
-    });
-    
-    videoSessionRef.child('cameraCandidates').on('child_added', async (snapshot) => {
-      const candidate = snapshot.val();
-      if (peerConnection && candidate) {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      console.log('📩 Received offer from camera');
+      
+      try {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        console.log('✅ Remote description set');
+        
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        
+        await videoSessionRef.child('answer').set(peerConnection.localDescription.toJSON());
+        console.log('📤 Answer sent to camera');
+        
+      } catch (error) {
+        console.error('❌ Error handling offer:', error);
       }
     });
+    
+    // Listen for ICE candidates from camera
+    videoSessionRef.child('cameraCandidates').on('child_added', async (snapshot) => {
+      if (!peerConnection || !snapshot.val()) return;
+      
+      try {
+        const candidate = snapshot.val();
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log('✅ ICE candidate added');
+      } catch (error) {
+        console.error('❌ Error adding ICE candidate:', error);
+      }
+    });
+    
+    console.log('✅ WebRTC setup complete');
+    
   } catch (error) {
-    console.error('❌ WebRTC error:', error);
+    console.error('❌ WebRTC setup error:', error);
   }
 }
 
 function closePiPCamera() {
+  console.log('📴 Closing PiP camera...');
+  
   const pipCamera = document.getElementById('pip-camera');
   const pipVideo = document.getElementById('pip-video');
   
   if (pipCamera) pipCamera.classList.add('hidden');
   if (pipVideo) pipVideo.srcObject = null;
-  if (peerConnection) peerConnection.close();
   
-  peerConnection = null;
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
+  }
+  
   remoteStream = null;
   isPiPActive = false;
+  
+  console.log('✅ PiP camera closed');
 }
 
-// ========= 4. 🎭 EMOTE LISTENER (FIXED!) =========
+// ========= 4. 🎭 EMOTE LISTENER =========
 function initEmoteListener() {
   console.log('🎭 Initializing emote listener...');
   
@@ -188,12 +253,10 @@ function initEmoteListener() {
   
   console.log('✅ Emote container found:', container);
   
-  // ✅ Listen untuk semua emote baru yang ditambahkan
   emotesRef.on('child_added', (snapshot) => {
     const emoteKey = snapshot.key;
     const emoteData = snapshot.val();
     
-    // Skip jika sudah pernah ditampilkan
     if (processedEmotes.has(emoteKey)) {
       console.log('⏭️ Emote already processed:', emoteKey);
       return;
@@ -201,13 +264,9 @@ function initEmoteListener() {
     
     console.log('🎭 NEW EMOTE RECEIVED:', emoteData);
     
-    // Tampilkan emote
     showEmoteAnimation(emoteData, emoteKey);
-    
-    // Tandai sebagai sudah diproses
     processedEmotes.add(emoteKey);
     
-    // Hapus dari Firebase setelah 12 detik
     setTimeout(() => {
       emotesRef.child(emoteKey).remove()
         .then(() => console.log('🗑️ Emote removed from Firebase:', emoteKey))
@@ -225,19 +284,15 @@ function showEmoteAnimation(emoteData, emoteKey) {
     return;
   }
   
-  // Create emote element
   const emoteEl = document.createElement('div');
   emoteEl.className = 'floating-emote';
   emoteEl.id = `emote-${emoteKey}`;
   
-  // ✨ ALTERNATE DIRECTION (RTL ↔ LTR)
   const direction = nextDirection;
   emoteEl.classList.add(direction);
   
-  // Toggle untuk emote berikutnya
   nextDirection = (direction === 'rtl') ? 'ltr' : 'rtl';
   
-  // Get Y position
   const yPosition = emotePositions[nextEmotePosition % emotePositions.length];
   nextEmotePosition++;
   
@@ -255,7 +310,6 @@ function showEmoteAnimation(emoteData, emoteKey) {
   
   console.log(`✅ Emote displayed (${direction.toUpperCase()}):`, emoteData.name, emoteData.emote);
   
-  // Remove after 10s
   setTimeout(() => {
     emoteEl.remove();
     console.log('🗑️ Emote element removed:', emoteKey);
@@ -450,4 +504,4 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
-console.log('✅ Display.js with FIXED emote animation loaded');
+console.log('✅ Display.js with FIXED WebRTC and emote animation loaded');
