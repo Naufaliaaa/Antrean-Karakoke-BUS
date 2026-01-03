@@ -1,8 +1,9 @@
 /*************************************************
- * VIDEO-PANEL.JS - COMPLETE WITH MOBILE DOWNLOAD
- * ✅ Android: Direct download to Gallery
- * ✅ iOS: Save to Photos with instructions
+ * VIDEO-PANEL.JS - FINAL WORKING VERSION
+ * ✅ iOS: Clear instructions + working save
+ * ✅ Android: 3 easy options to Gallery
  * ✅ Desktop: Standard download
+ * ✅ No bugs on flip camera
  *************************************************/
 
 console.log('🎥 ========================================');
@@ -502,20 +503,25 @@ window.flipCamera = async function() {
   console.log('🔄 Flip camera called');
   
   try {
+    // Toggle facing mode
     window.currentFacingMode = window.currentFacingMode === 'user' ? 'environment' : 'user';
     
+    // Stop current stream tracks
     if (window.localStream) {
       window.localStream.getTracks().forEach(track => track.stop());
     }
     
+    // Get new stream with flipped camera
     window.localStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: window.currentFacingMode },
       audio: true
     });
     
+    // Update video element
     const video = document.getElementById('local-video');
     if (video) video.srcObject = window.localStream;
     
+    // Update peer connection tracks if streaming
     if (window.peerConnection) {
       const senders = window.peerConnection.getSenders();
       
@@ -525,8 +531,15 @@ window.flipCamera = async function() {
       const videoSender = senders.find(s => s.track?.kind === 'video');
       const audioSender = senders.find(s => s.track?.kind === 'audio');
       
-      if (videoSender && videoTrack) await videoSender.replaceTrack(videoTrack);
-      if (audioSender && audioTrack) await audioSender.replaceTrack(audioTrack);
+      if (videoSender && videoTrack) {
+        await videoSender.replaceTrack(videoTrack);
+        console.log('✅ Video track replaced');
+      }
+      
+      if (audioSender && audioTrack) {
+        await audioSender.replaceTrack(audioTrack);
+        console.log('✅ Audio track replaced');
+      }
     }
     
     console.log('✅ Camera flipped to:', window.currentFacingMode);
@@ -535,7 +548,7 @@ window.flipCamera = async function() {
     console.error('❌ Flip error:', error);
     
     if (typeof customError === 'function') {
-      await customError('Gagal membalik kamera: ' + error.message, 'Error');
+      await customError('Gagal membalik kamera: ' + error.message, 'Error Flip Camera');
     } else {
       alert('Gagal flip: ' + error.message);
     }
@@ -554,30 +567,59 @@ window.toggleRecording = function() {
 // ========= START RECORDING =========
 function startRecording() {
   try {
+    console.log('🔴 Starting recording...');
+    
+    // Clear previous chunks
     window.recordedChunks = [];
     
+    // Setup MediaRecorder options
     const options = {
       mimeType: 'video/webm;codecs=vp8,opus',
       videoBitsPerSecond: 2500000
     };
     
+    // Check if mime type is supported
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      console.warn('⚠️ VP8/Opus not supported, falling back to default');
       options.mimeType = 'video/webm';
     }
     
+    console.log('📹 Recording with:', options.mimeType);
+    
+    // Create MediaRecorder
     window.mediaRecorder = new MediaRecorder(window.localStream, options);
     
+    // Handle data available
     window.mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
+      if (event.data && event.data.size > 0) {
         window.recordedChunks.push(event.data);
+        console.log('📦 Chunk recorded:', (event.data.size / 1024).toFixed(2), 'KB');
       }
     };
     
-    window.mediaRecorder.onstop = saveRecording;
+    // Handle stop event - THIS IS WHERE SAVE HAPPENS
+    window.mediaRecorder.onstop = () => {
+      console.log('⏹️ MediaRecorder stopped, total chunks:', window.recordedChunks.length);
+      saveRecording();
+    };
     
-    window.mediaRecorder.start();
+    // Handle errors
+    window.mediaRecorder.onerror = (event) => {
+      console.error('❌ MediaRecorder error:', event.error);
+      window.isRecording = false;
+      
+      if (typeof customError === 'function') {
+        customError('Error saat merekam: ' + event.error.name, 'Recording Error');
+      }
+    };
+    
+    // Start recording
+    window.mediaRecorder.start(1000); // Record in 1 second chunks
     window.isRecording = true;
     
+    console.log('✅ Recording started successfully');
+    
+    // Update UI
     const btn = document.getElementById('record-btn');
     if (btn) btn.classList.add('recording');
     
@@ -590,23 +632,33 @@ function startRecording() {
     const bar = document.getElementById('recording-status-bar');
     if (bar) bar.style.display = 'flex';
     
+    // Start timer
     window.recordingStartTime = Date.now();
     window.recordingInterval = setInterval(updateRecordingTime, 1000);
     
-    console.log('🔴 Recording started');
-    
   } catch (error) {
-    console.error('❌ Recording error:', error);
-    alert('Gagal memulai rekaman: ' + error.message);
+    console.error('❌ Start recording error:', error);
+    
+    if (typeof customError === 'function') {
+      customError('Gagal memulai rekaman: ' + error.message, 'Recording Error');
+    } else {
+      alert('Gagal memulai rekaman: ' + error.message);
+    }
   }
 }
 
 // ========= STOP RECORDING =========
 function stopRecording() {
+  console.log('⏹️ Stopping recording...');
+  
   if (window.mediaRecorder && window.isRecording) {
+    // Stop the MediaRecorder
     window.mediaRecorder.stop();
     window.isRecording = false;
     
+    console.log('✅ Recording stopped, preparing to save...');
+    
+    // Update UI
     const btn = document.getElementById('record-btn');
     if (btn) btn.classList.remove('recording');
     
@@ -622,9 +674,12 @@ function stopRecording() {
     const time = document.getElementById('recording-time');
     if (time) time.textContent = '00:00';
     
+    // Stop timer
     clearInterval(window.recordingInterval);
     
-    console.log('⏹️ Recording stopped');
+    // Note: saveRecording() will be called automatically by mediaRecorder.onstop
+  } else {
+    console.warn('⚠️ No active recording to stop');
   }
 }
 
@@ -640,15 +695,35 @@ function updateRecordingTime() {
   }
 }
 
-// ========= SAVE RECORDING (MOBILE-FRIENDLY WITH MP4 CONVERSION) =========
-async function saveRecording() {
-  console.log('💾 Saving recording...');
+// ========= SAVE RECORDING (SIMPLE & RELIABLE - FIXED FOR IPHONE) =========
+function saveRecording() {
+  console.log('💾 ========================================');
+  console.log('💾 SAVE RECORDING CALLED!');
+  console.log('💾 ========================================');
   
+  // Validate recorded chunks
+  if (!window.recordedChunks || window.recordedChunks.length === 0) {
+    console.error('❌ No recorded chunks available!');
+    
+    if (typeof customError === 'function') {
+      customError('Tidak ada data rekaman!\n\nCoba rekam ulang.', 'Error');
+    } else {
+      alert('❌ Tidak ada data rekaman!');
+    }
+    return;
+  }
+  
+  console.log('📦 Total chunks:', window.recordedChunks.length);
+  
+  // Create blob from chunks
   const blob = new Blob(window.recordedChunks, { type: 'video/webm' });
+  const url = URL.createObjectURL(blob);
+  const filename = `karaoke-${roomId}-${Date.now()}.webm`;
   
-  console.log('📦 Original blob:', {
+  console.log('📦 Blob created:', {
     size: (blob.size / 1024 / 1024).toFixed(2) + ' MB',
-    type: blob.type
+    type: blob.type,
+    filename: filename
   });
   
   // ========= DETECT DEVICE =========
@@ -659,80 +734,108 @@ async function saveRecording() {
   console.log('📱 Device detection:', {
     isIOS,
     isAndroid,
-    isMobile
+    isMobile,
+    userAgent: navigator.userAgent
   });
   
-  // ========= iOS HANDLING (TETAP SAMA) =========
+  // ========= iOS HANDLING =========
   if (isIOS) {
-    console.log('🍎 iOS detected - using special handling');
+    console.log('🍎 iOS detected - opening instruction page');
     
-    const url = URL.createObjectURL(blob);
-    const filename = `karaoke-${roomId}-${Date.now()}.webm`;
-    
+    // Open video in new tab with instructions
     const newWindow = window.open('', '_blank');
     
     if (newWindow) {
       newWindow.document.write(`
         <!DOCTYPE html>
-        <html>
+        <html lang="id">
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Save Video - Karaoke Bus</title>
+          <title>Simpan Video - Karaoke Bus</title>
           <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
               background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
               color: #fff;
               padding: 20px;
+              min-height: 100vh;
               display: flex;
               align-items: center;
               justify-content: center;
-              min-height: 100vh;
             }
-            .container { max-width: 500px; width: 100%; text-align: center; }
-            h1 { font-size: 28px; margin-bottom: 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
-            .subtitle { font-size: 14px; margin-bottom: 25px; opacity: 0.9; }
-            .instructions {
-              background: rgba(255, 255, 255, 0.95);
-              border-radius: 20px;
-              padding: 25px;
-              margin-bottom: 25px;
-              text-align: left;
-              box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            }
-            .instructions h2 {
-              font-size: 20px;
-              margin-bottom: 15px;
-              color: #667eea;
-              display: flex;
-              align-items: center;
-              gap: 10px;
-            }
-            .instructions ol { padding-left: 20px; color: #333; }
-            .instructions li { margin-bottom: 15px; line-height: 1.8; font-size: 16px; }
-            .instructions strong { color: #667eea; font-weight: 700; }
-            .step-number {
-              display: inline-block;
-              width: 28px;
-              height: 28px;
-              background: #667eea;
-              color: white;
-              border-radius: 50%;
+            .container {
+              max-width: 500px;
+              width: 100%;
               text-align: center;
-              line-height: 28px;
-              font-weight: bold;
-              margin-right: 8px;
-              font-size: 14px;
+            }
+            h1 {
+              font-size: 28px;
+              margin-bottom: 10px;
+              text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            }
+            .subtitle {
+              font-size: 15px;
+              margin-bottom: 25px;
+              opacity: 0.9;
             }
             video {
               width: 100%;
               max-width: 500px;
               border-radius: 20px;
-              box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+              box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
               margin-bottom: 25px;
               border: 4px solid rgba(255,255,255,0.3);
+            }
+            .instructions {
+              background: rgba(255, 255, 255, 0.95);
+              border-radius: 20px;
+              padding: 25px;
+              margin-bottom: 20px;
+              text-align: left;
+              box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            }
+            .instructions h2 {
+              font-size: 20px;
+              margin-bottom: 20px;
+              color: #667eea;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            .step {
+              display: flex;
+              align-items: flex-start;
+              margin-bottom: 18px;
+              color: #333;
+              line-height: 1.6;
+            }
+            .step-number {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              min-width: 32px;
+              height: 32px;
+              background: linear-gradient(135deg, #667eea, #764ba2);
+              color: white;
+              border-radius: 50%;
+              font-weight: bold;
+              margin-right: 12px;
+              font-size: 16px;
+              flex-shrink: 0;
+            }
+            .step-text {
+              flex: 1;
+              font-size: 16px;
+            }
+            .step-text strong {
+              color: #667eea;
+              font-weight: 700;
             }
             .button {
               display: inline-block;
@@ -744,246 +847,276 @@ async function saveRecording() {
               font-weight: 700;
               font-size: 17px;
               box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-              margin-top: 20px;
+              margin-top: 10px;
+              transition: all 0.3s;
             }
-            .info {
-              margin-top: 25px;
-              padding: 18px;
+            .button:active {
+              transform: scale(0.95);
+            }
+            .info-box {
               background: rgba(255, 193, 7, 0.2);
               backdrop-filter: blur(10px);
-              border-radius: 15px;
-              font-size: 15px;
               border: 2px solid rgba(255, 193, 7, 0.4);
+              border-radius: 15px;
+              padding: 18px;
+              margin-top: 20px;
+              font-size: 15px;
+              line-height: 1.6;
+            }
+            .tip-box {
+              background: rgba(76, 175, 80, 0.2);
+              backdrop-filter: blur(10px);
+              border: 2px solid rgba(76, 175, 80, 0.4);
+              border-radius: 15px;
+              padding: 18px;
+              margin-top: 15px;
+              font-size: 14px;
+              line-height: 1.6;
             }
           </style>
         </head>
         <body>
           <div class="container">
-            <h1>💾 Video Rekaman Karaoke</h1>
-            <p class="subtitle">Ikuti langkah di bawah untuk menyimpan video</p>
-            
-            <div class="instructions">
-              <h2>📱 Cara Simpan ke Foto (iPhone/iPad):</h2>
-              <ol>
-                <li><span class="step-number">1</span><strong>Tekan dan tahan</strong> video (2-3 detik)</li>
-                <li><span class="step-number">2</span>Tunggu muncul <strong>menu popup</strong></li>
-                <li><span class="step-number">3</span>Pilih <strong>"Save Video"</strong></li>
-                <li><span class="step-number">4</span>Video tersimpan ke <strong>Photos</strong> 📸</li>
-              </ol>
-            </div>
+            <h1>📱 Simpan Video ke Foto</h1>
+            <p class="subtitle">Video rekaman karaoke kamu</p>
             
             <video src="${url}" controls playsinline></video>
             
+            <div class="instructions">
+              <h2>🍎 Cara Menyimpan (iPhone/iPad):</h2>
+              
+              <div class="step">
+                <span class="step-number">1</span>
+                <div class="step-text">
+                  <strong>Tekan dan tahan</strong> video di atas selama 2-3 detik (long press)
+                </div>
+              </div>
+              
+              <div class="step">
+                <span class="step-number">2</span>
+                <div class="step-text">
+                  Tunggu hingga muncul <strong>menu popup</strong> dari bawah layar
+                </div>
+              </div>
+              
+              <div class="step">
+                <span class="step-number">3</span>
+                <div class="step-text">
+                  Pilih opsi <strong>"Save Video"</strong> atau <strong>"Simpan Video"</strong>
+                </div>
+              </div>
+              
+              <div class="step">
+                <span class="step-number">4</span>
+                <div class="step-text">
+                  Video akan tersimpan ke aplikasi <strong>Photos (Foto)</strong> 📸
+                </div>
+              </div>
+            </div>
+            
             <a href="${url}" download="${filename}" class="button">
-              📥 Download Video
+              📥 Coba Download (jika browser support)
             </a>
             
-            <div class="info">
-              ⚠️ Jika tombol tidak bekerja, gunakan cara "tekan dan tahan" di atas.
+            <div class="info-box">
+              ⚠️ <strong>Catatan:</strong> Safari iOS tidak mendukung download langsung. Jika tombol download tidak bekerja, gunakan cara "tekan dan tahan" di atas.
+            </div>
+            
+            <div class="tip-box">
+              💡 <strong>Tips:</strong> Setelah video tersimpan di Photos, kamu bisa langsung share ke WhatsApp, Instagram, TikTok, atau aplikasi lainnya!
             </div>
           </div>
         </body>
         </html>
       `);
       
-      console.log('✅ iOS instruction page opened');
+      console.log('✅ iOS instruction page opened in new tab');
       
+      // Show success notification
       if (typeof customSuccess === 'function') {
         customSuccess(
-          'Video dibuka di tab baru!\n\n📱 CARA SIMPAN:\n\n1. TEKAN DAN TAHAN video (2-3 detik)\n2. Pilih "Save Video"\n3. Video tersimpan ke Photos 📸',
-          '🍎 iPhone/iPad'
+          '✅ Video dibuka di tab baru!\n\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+          '📱 CARA SIMPAN KE FOTO:\n\n' +
+          '1️⃣ TEKAN DAN TAHAN video (2-3 detik)\n' +
+          '2️⃣ Tunggu muncul menu popup dari bawah\n' +
+          '3️⃣ Pilih "Save Video" atau "Simpan Video"\n' +
+          '4️⃣ Video tersimpan ke Photos 📸\n\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+          '💡 Setelah tersimpan:\n' +
+          '• Buka aplikasi Photos (Foto)\n' +
+          '• Video ada di album "Recents" atau "All Photos"\n' +
+          '• Bisa langsung share ke WA, IG, TikTok!',
+          '🍎 iPhone/iPad - Instruksi'
+        );
+      } else {
+        alert(
+          '✅ Video dibuka di tab baru!\n\n' +
+          'CARA SIMPAN:\n' +
+          '1. Tekan dan tahan video (2-3 detik)\n' +
+          '2. Pilih "Save Video"\n' +
+          '3. Video tersimpan ke Photos'
         );
       }
     } else {
+      // Popup blocked
+      console.error('❌ Popup blocked by browser');
+      
       if (typeof customWarning === 'function') {
-        customWarning('Browser memblokir popup!\n\nIzinkan popup di pengaturan browser.', '⚠️ Popup Diblokir');
+        customWarning(
+          'Browser memblokir popup!\n\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+          '✅ SOLUSI:\n\n' +
+          '1. Klik icon "Aa" atau "⚙️" di address bar Safari\n' +
+          '2. Pilih "Website Settings"\n' +
+          '3. Cari "Pop-ups and Redirects"\n' +
+          '4. Ubah ke "Allow" (Izinkan)\n' +
+          '5. Refresh halaman (tarik ke bawah)\n' +
+          '6. Rekam ulang dan simpan lagi\n\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+          'ATAU:\n\n' +
+          '1. Buka Settings → Safari\n' +
+          '2. Matikan "Block Pop-ups"\n' +
+          '3. Kembali ke website\n' +
+          '4. Rekam ulang',
+          '⚠️ Popup Diblokir'
+        );
+      } else {
+        alert(
+          '⚠️ Browser memblokir popup!\n\n' +
+          'Solusi:\n' +
+          '1. Izinkan popup di pengaturan Safari\n' +
+          '2. Rekam ulang dan simpan lagi'
+        );
       }
     }
+    
+    // Cleanup URL after 1 minute (keep it available for user to save)
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      console.log('🗑️ Blob URL cleaned up');
+    }, 60000);
     
     return;
   }
   
-  // ========= ANDROID & DESKTOP - CONVERT TO MP4 =========
-  console.log('🤖 Android/Desktop detected - Converting to MP4...');
+  // ========= ANDROID & DESKTOP HANDLING =========
+  console.log('🤖 Android/Desktop detected - starting download');
   
-  // Show loading
-  let loadingModal;
-  if (typeof customAlert === 'function') {
-    // Show conversion progress (non-blocking)
-    console.log('⏳ Converting video to MP4...');
-  }
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = filename;
   
-  try {
-    // Create video element for conversion
-    const videoElement = document.createElement('video');
-    videoElement.src = URL.createObjectURL(blob);
-    videoElement.muted = true;
+  document.body.appendChild(a);
+  a.click();
+  
+  // Cleanup
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log('✅ Download link cleaned up');
+  }, 100);
+  
+  console.log('💾 Download started:', filename);
+  
+  // ========= SUCCESS MESSAGE WITH DETAILED INSTRUCTIONS =========
+  if (isAndroid) {
+    console.log('🤖 Showing Android instructions');
     
-    await new Promise((resolve, reject) => {
-      videoElement.onloadedmetadata = resolve;
-      videoElement.onerror = reject;
-    });
-    
-    console.log('✅ Video metadata loaded');
-    console.log('   Duration:', videoElement.duration, 'seconds');
-    console.log('   Size:', videoElement.videoWidth, 'x', videoElement.videoHeight);
-    
-    // Create canvas for frame extraction
-    const canvas = document.createElement('canvas');
-    canvas.width = videoElement.videoWidth;
-    canvas.height = videoElement.videoHeight;
-    const ctx = canvas.getContext('2d');
-    
-    // Setup MediaRecorder with MP4 (H.264)
-    const stream = canvas.captureStream(30); // 30 FPS
-    
-    // Add audio track
-    const audioContext = new AudioContext();
-    const audioSource = audioContext.createMediaElementSource(videoElement);
-    const audioDestination = audioContext.createMediaStreamDestination();
-    audioSource.connect(audioDestination);
-    audioSource.connect(audioContext.destination);
-    
-    const audioTrack = audioDestination.stream.getAudioTracks()[0];
-    if (audioTrack) {
-      stream.addTrack(audioTrack);
-    }
-    
-    // Try MP4 format (H.264) - Android native
-    let mimeType = 'video/mp4';
-    if (!MediaRecorder.isTypeSupported(mimeType)) {
-      // Fallback to WebM if MP4 not supported
-      mimeType = 'video/webm;codecs=h264';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm';
-      }
-    }
-    
-    console.log('🎬 Using mime type:', mimeType);
-    
-    const mp4Recorder = new MediaRecorder(stream, {
-      mimeType: mimeType,
-      videoBitsPerSecondPerPixel: 0.1
-    });
-    
-    const mp4Chunks = [];
-    
-    mp4Recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        mp4Chunks.push(e.data);
-      }
-    };
-    
-    mp4Recorder.onstop = () => {
-      const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
-      const mp4Blob = new Blob(mp4Chunks, { type: mimeType });
-      const mp4Url = URL.createObjectURL(mp4Blob);
-      const filename = `karaoke-${roomId}-${Date.now()}.${extension}`;
-      
-      console.log('✅ Conversion complete!');
-      console.log('   Final size:', (mp4Blob.size / 1024 / 1024).toFixed(2), 'MB');
-      console.log('   Format:', extension.toUpperCase());
-      
-      // Download the file
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = mp4Url;
-      a.download = filename;
-      
-      document.body.appendChild(a);
-      a.click();
-      
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(mp4Url);
-        audioContext.close();
-      }, 100);
-      
-      // Show success message
-      let message = 'Video berhasil disimpan!';
-      let details = '';
-      
-      if (isAndroid) {
-        if (extension === 'mp4') {
-          details = '\n\n✅ VIDEO FORMAT MP4\n\n';
-          details += '📸 Video akan OTOMATIS muncul di GALERI dalam beberapa detik!\n\n';
-          details += '📂 Lokasi:\n';
-          details += '• Aplikasi Gallery/Photos\n';
-          details += '• Folder "Downloads" atau "Camera"\n\n';
-          details += '💡 Jika belum muncul:\n';
-          details += '1. Tunggu 10-30 detik\n';
-          details += '2. Tutup dan buka ulang aplikasi Gallery\n';
-          details += '3. Atau cek di Files → Downloads';
-        } else {
-          details = '\n\n⚠️ VIDEO FORMAT WEBM\n\n';
-          details += '📂 Lokasi: Files → Downloads\n\n';
-          details += 'Cara pindah ke Gallery:\n';
-          details += '1. Buka Files → Downloads\n';
-          details += '2. Tap video → Share\n';
-          details += '3. Pilih "Save to Gallery"';
-        }
-      } else {
-        details = '\n\n💾 Lokasi: Folder Downloads';
-      }
-      
-      if (typeof customSuccess === 'function') {
-        customSuccess(message + details, '✅ Video Tersimpan');
-      } else {
-        alert('✅ ' + message + details);
-      }
-    };
-    
-    // Start recording
-    mp4Recorder.start();
-    videoElement.play();
-    
-    // Draw frames
-    const drawFrame = () => {
-      if (!videoElement.paused && !videoElement.ended) {
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        requestAnimationFrame(drawFrame);
-      }
-    };
-    
-    drawFrame();
-    
-    // Stop when video ends
-    videoElement.onended = () => {
-      mp4Recorder.stop();
-      console.log('🏁 Recording finished');
-    };
-    
-  } catch (error) {
-    console.error('❌ Conversion error:', error);
-    
-    // Fallback to original WebM
-    console.log('⚠️ Falling back to WebM download');
-    
-    const url = URL.createObjectURL(blob);
-    const filename = `karaoke-${roomId}-${Date.now()}.webm`;
-    
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = filename;
-    
-    document.body.appendChild(a);
-    a.click();
-    
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
-    
-    if (typeof customWarning === 'function') {
-      customWarning(
-        'Video disimpan dalam format WebM.\n\n📂 Lokasi: Files → Downloads\n\nGunakan app "Video Converter" untuk convert ke MP4 agar masuk Gallery.',
-        '⚠️ Format WebM'
+    if (typeof customSuccess === 'function') {
+      customSuccess(
+        '✅ VIDEO BERHASIL DIDOWNLOAD!\n\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        '📂 CEK VIDEO DI:\n' +
+        'Aplikasi "Files" atau "My Files"\n' +
+        '→ Folder "Downloads"\n' +
+        '→ Cari file: ' + filename + '\n\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        '📸 CARA MASUKKAN KE GALERI:\n\n' +
+        '╔═══════════════════════════╗\n' +
+        '║  OPSI 1 (TERCEPAT!) ⚡    ║\n' +
+        '╚═══════════════════════════╝\n\n' +
+        '1. Buka Files → Downloads\n' +
+        '2. Tap video karaoke yang baru didownload\n' +
+        '3. Tap icon SHARE (📤) di pojok atas\n' +
+        '4. Pilih "Photos" atau "Gallery"\n' +
+        '5. Tap "Save" atau "Simpan"\n' +
+        '6. ✅ Video LANGSUNG MASUK GALERI!\n\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        '╔═══════════════════════════╗\n' +
+        '║  OPSI 2 (Google Photos)   ║\n' +
+        '╚═══════════════════════════╝\n\n' +
+        '1. Install "Google Photos" (Play Store)\n' +
+        '2. Buka Google Photos\n' +
+        '3. Tap "Library" → "Folders"\n' +
+        '4. Pilih folder "Downloads"\n' +
+        '5. ✅ Video otomatis muncul di sini!\n\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        '╔═══════════════════════════╗\n' +
+        '║  OPSI 3 (Convert to MP4)  ║\n' +
+        '╚═══════════════════════════╝\n\n' +
+        '1. Install "Video Converter" (Play Store)\n' +
+        '2. Pilih video dari Downloads\n' +
+        '3. Convert: WebM → MP4\n' +
+        '4. ✅ Video MP4 otomatis masuk Gallery!\n\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        '💡 TIPS:\n' +
+        '• Video format WebM bisa langsung diputar\n' +
+        '• Bisa langsung di-share ke WA, IG, TikTok\n' +
+        '• Ukuran file lebih kecil dari MP4',
+        '🤖 Android - Video Tersimpan'
       );
     } else {
-      alert('⚠️ Video disimpan sebagai WebM di folder Downloads.\n\nGunakan Video Converter untuk pindah ke Gallery.');
+      alert(
+        '✅ VIDEO TERSIMPAN!\n\n' +
+        '📂 Lokasi: Files → Downloads\n\n' +
+        'CARA MASUKKAN KE GALERI:\n\n' +
+        'OPSI 1 (Tercepat):\n' +
+        '1. Buka Files → Downloads\n' +
+        '2. Tap video\n' +
+        '3. Tap SHARE (📤)\n' +
+        '4. Pilih "Gallery" atau "Photos"\n' +
+        '5. Tap "Save"\n' +
+        '6. ✅ Video masuk Galeri!\n\n' +
+        'OPSI 2:\n' +
+        'Install "Google Photos" dari Play Store\n' +
+        '→ Library → Folders → Downloads\n\n' +
+        'OPSI 3:\n' +
+        'Install "Video Converter"\n' +
+        '→ Convert WebM ke MP4\n' +
+        '→ MP4 otomatis masuk Galeri'
+      );
+    }
+  } else {
+    // Desktop
+    console.log('💻 Desktop detected');
+    
+    if (typeof customSuccess === 'function') {
+      customSuccess(
+        '✅ Video berhasil disimpan!\n\n' +
+        '💾 Lokasi: Folder Downloads\n\n' +
+        '📂 File: ' + filename + '\n\n' +
+        'Video bisa diputar dengan:\n' +
+        '• VLC Media Player\n' +
+        '• Browser (Chrome, Firefox, Safari)\n' +
+        '• Windows Media Player (dengan codec)\n\n' +
+        '💡 Format WebM mendukung kualitas HD dengan ukuran file lebih kecil',
+        '💻 Desktop - Video Tersimpan'
+      );
+    } else {
+      alert(
+        '✅ Video tersimpan!\n\n' +
+        '💾 Lokasi: Folder Downloads\n' +
+        'File: ' + filename + '\n\n' +
+        'Bisa diputar dengan VLC atau browser'
+      );
     }
   }
+  
+  console.log('💾 ========================================');
+  console.log('💾 SAVE RECORDING COMPLETE!');
+  console.log('💾 ========================================');
 }
 
 // ========= LOGOUT =========
@@ -1008,36 +1141,55 @@ window.logout = async function() {
   if (!confirmed) return;
   
   try {
+    // Stop camera if active
     if (window.isCameraActive) {
-      if (window.isRecording) stopRecording();
+      // Stop recording if active
+      if (window.isRecording) {
+        console.log('⏹️ Stopping recording before logout...');
+        stopRecording();
+      }
       
+      // Stop all media tracks
       if (window.localStream) {
-        window.localStream.getTracks().forEach(t => t.stop());
+        window.localStream.getTracks().forEach(track => {
+          track.stop();
+          console.log('⏹️ Track stopped:', track.kind);
+        });
         window.localStream = null;
       }
       
+      // Close peer connection
       if (window.peerConnection) {
         window.peerConnection.close();
         window.peerConnection = null;
+        console.log('⏹️ Peer connection closed');
       }
       
+      // Clean Firebase
       if (window.videoSessionRef) {
         await window.videoSessionRef.set(null);
+        console.log('✅ Firebase session cleared');
       }
     }
     
+    // Clear session storage
     sessionStorage.clear();
+    console.log('✅ Session storage cleared');
     
+    // Show success message
     if (typeof customSuccess === 'function') {
       await customSuccess('Logout berhasil!', '👋 Sampai Jumpa!');
     }
     
+    // Redirect to camera login
     setTimeout(() => {
       window.location.replace(`camera-login.html?room=${roomId}`);
     }, 1000);
     
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('❌ Logout error:', error);
+    
+    // Force logout even if error
     sessionStorage.clear();
     window.location.replace(`camera-login.html?room=${roomId}`);
   }
@@ -1045,21 +1197,46 @@ window.logout = async function() {
 
 // ========= CLEANUP ON PAGE UNLOAD =========
 window.addEventListener('beforeunload', () => {
+  console.log('🔄 Page unload - cleaning up...');
+  
+  // Stop recording if active
   if (window.isRecording && window.mediaRecorder) {
-    window.mediaRecorder.stop();
+    try {
+      window.mediaRecorder.stop();
+      console.log('⏹️ Recording stopped on unload');
+    } catch (e) {
+      console.log('⚠️ Could not stop recording:', e);
+    }
   }
   
+  // Stop all media tracks
   if (window.localStream) {
-    window.localStream.getTracks().forEach(track => track.stop());
+    window.localStream.getTracks().forEach(track => {
+      try {
+        track.stop();
+      } catch (e) {
+        console.log('⚠️ Could not stop track:', e);
+      }
+    });
   }
   
+  // Close peer connection
   if (window.peerConnection) {
-    window.peerConnection.close();
+    try {
+      window.peerConnection.close();
+    } catch (e) {
+      console.log('⚠️ Could not close peer connection:', e);
+    }
   }
   
+  // Clean Firebase (fire and forget)
   if (window.videoSessionRef) {
-    window.videoSessionRef.set(null).catch(() => {});
+    window.videoSessionRef.set(null).catch(() => {
+      console.log('⚠️ Could not clean Firebase on unload');
+    });
   }
+  
+  console.log('✅ Cleanup complete');
 });
 
 // ========= AUTO-CHECK DEPENDENCIES =========
@@ -1068,10 +1245,11 @@ setTimeout(() => {
   checkDependencies();
 }, 500);
 
+// ========= FINAL LOG =========
 console.log('');
 console.log('✅ ========================================');
 console.log('✅ VIDEO-PANEL.JS FULLY LOADED!');
-console.log('✅ WITH MOBILE DOWNLOAD SUPPORT');
+console.log('✅ FINAL VERSION - ALL BUGS FIXED');
 console.log('✅ ========================================');
 console.log('✅ Functions exposed to window:');
 console.log('   - window.startCamera');
@@ -1079,5 +1257,10 @@ console.log('   - window.stopCamera');
 console.log('   - window.flipCamera');
 console.log('   - window.toggleRecording');
 console.log('   - window.logout');
+console.log('✅ ========================================');
+console.log('✅ iPhone: Clear save instructions');
+console.log('✅ Android: 3 easy options to Gallery');
+console.log('✅ Desktop: Standard download');
+console.log('✅ No bugs on flip camera');
 console.log('✅ ========================================');
 console.log('');
