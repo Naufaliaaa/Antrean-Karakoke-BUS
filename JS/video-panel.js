@@ -985,6 +985,7 @@ async function saveRecording() {
     }
   }
 }
+
 // ========= LOGOUT =========
 window.logout = async function() {
   console.log('🚪 Logout called');
