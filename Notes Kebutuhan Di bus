@@ -1,45 +1,432 @@
-1. Perangkat Utama (Otak Sistem)
+📋 NOTES LENGKAP - REQUIREMENTS UNTUK MENJALANKAN WEB KARAOKE BUS
 
-Kamu butuh alat untuk membuka website antrean tersebut dan menampilkannya ke TV. Pilih salah satu:
+🚌 1. PERANGKAT YANG DIBUTUHKAN
+A. Display Karaoke (Layar Utama)
 
-Laptop: Paling direkomendasikan karena paling stabil untuk memutar YouTube API dan mudah dioperasikan oleh kru bus.
+Device: Laptop, PC, atau Smart TV
+Specs:
 
-Android TV Box: Lebih ringkas, tapi pastikan memiliki browser yang mumpuni (seperti Chrome) dan mendukung mouse untuk navigasi awal.
+RAM minimal: 4GB (recommended 8GB)
+Browser: Chrome/Firefox/Edge terbaru
+Resolusi layar: 1920x1080 (Full HD) atau lebih tinggi
 
-2. Koneksi Internet
 
-Karena lagu diambil langsung dari YouTube, internet yang stabil adalah kunci:
+Fungsi: Menampilkan video YouTube + PiP camera + antrean lagu
 
-Modem WiFi Mobil (MiFi): Gunakan modem yang mendukung 4G/5G dengan kuota besar.
+B. Camera Panel (Untuk Streaming Kamera)
 
-Router Orbit/Pihak Ketiga: Jika ingin sinyal yang lebih kuat untuk menampung banyak penumpang yang mengakses website secara bersamaan.
+Device: Laptop/PC dengan webcam ATAU smartphone
+Specs:
 
-3. Penghubung Layar (Display)
+Webcam HD (720p minimum, 1080p recommended)
+RAM minimal: 4GB
+Browser: Chrome/Safari/Firefox terbaru
 
-Kabel HDMI: Untuk menghubungkan Laptop/TV Box ke layar TV bus. Jika TV bus model lama, kamu mungkin butuh konverter HDMI to RCA (kabel warna merah, kuning, putih).
 
-Splitter HDMI: Jika bus memiliki lebih dari satu TV, alat ini berguna agar satu tampilan laptop bisa muncul di semua TV secara bersamaan.
+Fungsi: Streaming video penyanyi ke layar display (PiP)
 
-4. Sistem Audio
+C. Admin Panel (Kontrol Antrean)
 
-Kabel AUX atau Bluetooth: Untuk menyambungkan suara dari Laptop/TV Box ke head unit atau amplifier bus agar suara musik keluar lewat speaker plafon bus.
+Device: Laptop, PC, Tablet, atau Smartphone
+Browser: Chrome/Firefox/Safari terbaru
+Fungsi: Mengelola antrean lagu, skip, hapus, tambah manual
 
-Mic Karaoke: Tetap menggunakan sistem mic bawaan bus seperti biasa.
+D. Penumpang (Request Lagu)
 
-5. Akses Penumpang
+Device: Smartphone Android/iOS
+Browser: Chrome/Safari/Firefox
+Fungsi: Request lagu via QR Code atau link
 
-Stiker QR Code: Kamu harus mencetak QR code yang dilaminating atau ditempel di setiap sandaran kursi atau area yang mudah terlihat. QR ini berisi link website antreanmu.
 
-Ringkasan Skema Pemasangan:
+🌐 2. KONEKSI INTERNET
+Requirements:
 
-Laptop terhubung ke Internet via WiFi.
+✅ Koneksi Internet WAJIB (untuk streaming YouTube + Firebase)
+✅ Kecepatan minimum: 10 Mbps (download)
+✅ Recommended: 20 Mbps atau lebih tinggi
+✅ Stabil: Hindari paket data yang throttling
 
-Laptop terhubung ke TV Bus via kabel HDMI.
+Opsi Koneksi:
 
-Laptop terhubung ke Speaker Bus via kabel Audio/Bluetooth.
+WiFi Router di Bus
 
-Penumpang scan QR, isi data, dan daftar lagu muncul di Laptop yang otomatis tampil di TV.
+Gunakan modem 4G/5G dengan unlimited data
+Pasang WiFi router untuk semua device
+Recommended: Modem Huawei/ZTE dengan unlimited Telkomsel/XL
 
-Tips Tambahan:
 
-Mengingat YouTube memakan banyak kuota dan butuh sinyal kuat, pastikan bus beroperasi di area yang tercover sinyal 4G dengan baik. Jika tidak, video mungkin akan sering buffering.
+Hotspot Smartphone
+
+Pakai smartphone sebagai hotspot
+Pastikan paket data unlimited
+Kurang stabil untuk banyak user
+
+
+Mobile Router
+
+Device khusus seperti Mifi
+Bisa sambil charging
+Lebih stabil dari hotspot HP
+
+
+
+
+🔐 3. FIREBASE & HOSTING
+Firebase (Database):
+
+✅ Sudah setup di: https://karaoke-bus-default-rtdb.asia-southeast1.firebasedatabase.app
+✅ Free plan Firebase (sudah cukup untuk 100+ user)
+⚠️ Monitor usage di Firebase Console
+📊 Quota Harian:
+
+Simultaneous connections: 100
+GB downloaded: 10 GB/day
+Realtime Database storage: 1 GB
+
+
+
+Web Hosting:
+Ada beberapa opsi:
+OPSI 1: GitHub Pages (GRATIS) ⭐ RECOMMENDED
+
+✅ 100% Gratis
+✅ HTTPS otomatis
+✅ Custom domain support
+✅ Unlimited bandwidth
+❌ Tidak support PHP/backend
+
+Cara Deploy:
+bash1. Buat repository di GitHub
+2. Upload semua file HTML, CSS, JS, img
+3. Settings → Pages → Deploy from main branch
+4. Akses via: https://username.github.io/karaoke-bus
+```
+
+#### **OPSI 2: Netlify (GRATIS)** ⭐ **RECOMMENDED**
+- ✅ **100% Gratis**
+- ✅ **HTTPS otomatis**
+- ✅ **Custom domain**
+- ✅ **Drag & drop deploy**
+- ✅ **Auto SSL certificate**
+
+**Cara Deploy:**
+```
+1. Buka netlify.com
+2. Drag & drop folder project
+3. Selesai! Auto dapat link https://xxx.netlify.app
+```
+
+#### **OPSI 3: Vercel (GRATIS)**
+- ✅ **100% Gratis**
+- ✅ **HTTPS otomatis**
+- ✅ **Fast CDN**
+- ✅ **GitHub integration**
+
+#### **OPSI 4: Hosting Berbayar**
+- **Niagahoster:** Rp 20.000/bulan
+- **Hostinger:** Rp 25.000/bulan
+- **Domainesia:** Rp 30.000/bulan
+
+---
+
+## 🔑 **4. PASSWORD & CREDENTIALS**
+
+### **Password yang Perlu Diingat:**
+
+| Akses | Password | File Config |
+|-------|----------|-------------|
+| **PIN Bus** | `101010` | `firebase.js` (di database) |
+| **Admin Panel** | `karaokebushioo0001` | `admin-login.js` |
+| **Display Panel** | `displaybus9999` | `display-login.js` |
+| **Camera Panel** | `panelcamerabushioo021` | `camera-login.js` |
+
+### **Cara Ganti Password:**
+
+#### **Ganti PIN Bus:**
+1. Buka Firebase Console
+2. Masuk ke: `karaoke/room/BUS-001/Setting/pin`
+3. Ubah nilai dari `101010` ke PIN baru (6 digit)
+
+#### **Ganti Password Admin:**
+1. Buka file: `js/admin-login.js`
+2. Cari baris: `const ADMIN_PASSWORD = "karaokebushioo0001";`
+3. Ubah password di dalam tanda kutip
+
+#### **Ganti Password Display:**
+1. Buka file: `js/display-login.js`
+2. Cari: `const DISPLAY_PASSWORD = "displaybus9999";`
+3. Ubah password
+
+#### **Ganti Password Camera:**
+1. Buka file: `js/camera-login.js`
+2. Cari: `const CAMERA_PASSWORD = "panelcamerabushioo021";`
+3. Ubah password
+
+---
+
+## 🚀 **5. CARA SETUP DI BUS (STEP-BY-STEP)**
+
+### **PERSIAPAN (1 Hari Sebelumnya):**
+
+1. ✅ **Deploy Website**
+   - Upload ke GitHub Pages/Netlify/Vercel
+   - Dapatkan URL: `https://yourdomain.com`
+   - Test akses dari HP
+
+2. ✅ **Test Semua Fitur**
+   - Login semua panel (Admin, Display, Camera)
+   - Request lagu dummy
+   - Test PiP camera
+   - Test recording
+
+3. ✅ **Setup Modem/Router**
+   - Beli paket unlimited (Telkomsel/XL/Indosat)
+   - Setup WiFi dengan password
+   - Test kecepatan internet (min 10 Mbps)
+
+4. ✅ **Print QR Code**
+   - Buka Admin Panel
+   - Screenshot QR Code
+   - Print ukuran A4
+   - Laminating (opsional)
+
+### **SETUP DI BUS (30 Menit):**
+
+#### **Step 1: Setup Internet (5 menit)**
+```
+1. Nyalakan modem/mifi
+2. Pastikan semua device konek WiFi
+3. Test internet: buka google.com
+4. Cek kecepatan: fast.com (min 10 Mbps)
+```
+
+#### **Step 2: Setup Display Karaoke (10 menit)**
+```
+1. Hubungkan laptop ke TV/Monitor via HDMI
+2. Buka browser (Chrome recommended)
+3. Akses: https://yourdomain.com
+4. Pilih bus (contoh: BUS-001)
+5. Masukkan PIN: 101010
+6. Klik "Layar Karaoke"
+7. Login dengan password: displaybus9999
+8. Klik "MULAI KARAOKE"
+9. Full screen (F11)
+10. ✅ Display ready!
+```
+
+#### **Step 3: Setup Camera Panel (5 menit)**
+```
+1. Buka laptop/PC dengan webcam
+2. Akses: https://yourdomain.com
+3. Pilih bus yang sama (BUS-001)
+4. Masukkan PIN yang sama
+5. Klik "Video Panel"
+6. Login: panelcamerabushioo021
+7. Klik "Aktifkan Kamera"
+8. Izinkan akses kamera
+9. ✅ Kamera streaming ke display!
+```
+
+#### **Step 4: Setup Admin Panel (5 menit)**
+```
+1. Buka laptop/tablet/HP
+2. Akses: https://yourdomain.com
+3. Pilih bus yang sama
+4. Masukkan PIN yang sama
+5. Klik "Panel Admin"
+6. Login: karaokebushioo0001
+7. ✅ Admin panel ready!
+```
+
+#### **Step 5: Pasang QR Code (5 menit)**
+```
+1. Print QR Code dari Admin Panel
+2. Tempel di dinding bus (dekat penumpang)
+3. Atau taruh di tempat yang mudah dilihat
+4. Test scan QR pakai HP
+5. ✅ Penumpang bisa request lagu!
+```
+
+---
+
+## 📱 **6. CARA PAKAI UNTUK PENUMPANG**
+
+### **Cara Request Lagu:**
+```
+1. Scan QR Code di bus ATAU
+   Akses link dari papan pengumuman
+
+2. Masukkan PIN bus (101010)
+
+3. Isi form:
+   - Nama kamu
+   - Link YouTube lagu karaoke
+
+4. Klik "Tambah ke Antrean"
+
+5. ✅ Lagu masuk antrean!
+   Tunggu giliran untuk nyanyi
+```
+
+### **Cara Kirim Emote:**
+```
+1. Buka form request lagu (sama seperti di atas)
+
+2. Scroll ke bawah
+
+3. Klik emoji yang kamu mau:
+   👏 Tepuk Tangan
+   😍 Kagum
+   👍 Jempol
+   😂 Ketawa
+   ❤️ Love
+   🔥 Mantap
+
+4. ✅ Emote muncul di layar karaoke!
+```
+
+---
+
+## ⚙️ **7. CARA PAKAI UNTUK ADMIN**
+
+### **Kontrol Antrean:**
+- ✅ **Skip lagu:** Klik tombol "⏭️ Skip"
+- ✅ **Hapus lagu:** Klik tombol "🗑️ Hapus"
+- ✅ **Tambah manual:** Isi form + klik "➕ Tambah"
+- ✅ **Ubah urutan:** Drag & drop lagu (☰ icon)
+- ✅ **Reset semua:** Klik "🗑️ Reset Semua"
+
+### **Monitor:**
+- 📊 Total antrean: terlihat di header
+- 🎤 Lagu sedang diputar: card besar di atas
+- 👥 Daftar tunggu: list di bawah
+
+---
+
+## 🎥 **8. CARA PAKAI CAMERA PANEL**
+
+### **Recording Video:**
+```
+1. Aktifkan kamera
+2. Klik "⏺️ Mulai Rekam"
+3. Timer mulai berjalan
+4. Klik "⏹️ Stop Rekam" saat selesai
+5. Video otomatis save
+```
+
+### **Cara Save di iPhone:**
+```
+1. Tab baru terbuka dengan video
+2. TEKAN DAN TAHAN video (2-3 detik)
+3. Pilih "Save Video"
+4. ✅ Video tersimpan ke Photos
+```
+
+### **Cara Save di Android:**
+```
+1. Video download otomatis ke Downloads
+2. Buka Files → Downloads
+3. Tap video → Share → Gallery
+4. Tap "Save"
+5. ✅ Video masuk Galeri!
+
+🔧 9. TROUBLESHOOTING UMUM
+❌ Video YouTube Tidak Bisa Diputar:
+Penyebab: Link bermasalah / embed disabled
+Solusi:
+
+Validasi sudah otomatis di form
+Admin: Skip lagu yang error
+Minta penumpang request lagu lain
+
+❌ Kamera Tidak Muncul di Display:
+Penyebab: WebRTC connection gagal
+Solusi:
+
+Refresh Camera Panel (F5)
+Refresh Display (F5)
+Klik "Aktifkan Kamera" lagi
+Cek koneksi internet
+
+❌ Internet Lemot:
+Solusi:
+
+Cek kecepatan: fast.com
+Restart modem
+Kurangi device yang konek WiFi
+Pakai paket unlimited yang lebih cepat
+
+❌ Lupa Password:
+Solusi:
+
+Lihat di notes ini atau
+Buka file JS di folder js/
+Cari const xxx_PASSWORD = "..."
+
+
+💾 10. BACKUP & MAINTENANCE
+Backup Rutin:
+
+✅ Export Firebase data setiap minggu
+✅ Backup source code di GitHub
+✅ Screenshot QR Code untuk print ulang
+✅ Catat password di tempat aman
+
+Monitoring:
+
+📊 Firebase Console: Cek usage harian
+🔥 Quota: Pastikan tidak exceed free tier
+🌐 Hosting: Monitor uptime
+
+Update:
+
+🔄 Browser: Update ke versi terbaru
+🔐 Password: Ganti setiap 3 bulan
+🚌 Bus baru: Tambah di index.js (array buses)
+
+
+📞 11. KONTAK SUPPORT
+IssueKontakFirebase downFirebase Status: status.firebase.google.comHosting downCek status hosting masing-masingBug/ErrorDeveloper / IT SupportFeature RequestDeveloper
+
+💰 12. ESTIMASI BIAYA BULANAN
+ItemBiayaHostingRp 0 (GitHub Pages/Netlify)FirebaseRp 0 (Free tier cukup)Domain (opsional)Rp 100.000/tahunInternet (unlimited)Rp 150.000 - 300.000/bulanListrik (laptop/modem)Rp 50.000/bulanTOTAL~Rp 200.000 - 350.000/bulan
+
+✅ 13. CHECKLIST HARIAN
+Sebelum Bus Berangkat:
+
+ Modem/WiFi nyala & internet OK
+ Display laptop terhubung ke TV
+ Display login & full screen (F11)
+ Camera panel aktif & streaming
+ Admin panel login
+ QR Code terpasang
+ Test request 1 lagu dummy
+
+Selama Perjalanan:
+
+ Monitor antrean di admin panel
+ Skip lagu yang error
+ Bantu penumpang yang kesulitan
+
+Setelah Perjalanan:
+
+ Logout semua panel
+ Tutup browser
+ Matikan modem
+ Backup data (opsional)
+
+
+📖 14. LINK PENTING
+ResourceURLWebsitehttps://yourdomain.comFirebase Consolehttps://console.firebase.google.comGitHub Repo (jika pakai)https://github.com/username/repoNotes iniSimpan di Google Drive / Print
+
+🎯 KESIMPULAN
+Minimal Requirements:
+
+✅ 3 Device (Display + Camera + Admin)
+✅ Internet 10+ Mbps
+✅ Website sudah deploy
+✅ QR Code printed
+✅ Tahu semua password
+
+Ready dalam: 30 menit setup
+Biaya: ~Rp 200.000-350.000/bulan
